@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playlist Tier List Maker</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container dark-theme">
+        <h1 class="mt-4 mb-4">Playlist Tier List Maker</h1>
+        <form method="post">
+            <div class="form-group">
+                <label for="playlist_url">Playlist URL:</label>
+                <input type="text" class="form-control" id="playlist_url" name="playlist_url" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Load Playlist</button>
+        </form>
+
+        <div class="tier-list-container mt-4">
+            <div class="tier-row">
+                <div class="tier-label tier-s">S</div>
+                <div class="tier-content" data-tier="S"></div>
+            </div>
+            <div class="tier-row">
+                <div class="tier-label tier-a">A</div>
+                <div class="tier-content" data-tier="A"></div>
+            </div>
+            <div class="tier-row">
+                <div class="tier-label tier-b">B</div>
+                <div class="tier-content" data-tier="B"></div>
+            </div>
+            <div class="tier-row">
+                 <div class="tier-label tier-c">C</div>
+                <div class="tier-content" data-tier="C"></div>
+            </div>
+              <div class="tier-row">
+                <div class="tier-label tier-d">D</div>
+                <div class="tier-content" data-tier="D"></div>
+            </div>
+              <div class="tier-row">
+                <div class="tier-label tier-f">F</div>
+                <div class="tier-content" data-tier="F"></div>
+            </div>
+           <div class="tier-row">
+                <div class="tier-label unsorted-tier"> Unsorted </div>
+                <div class="tier-content" data-tier="unsorted" >
+                    {% if playlist_data %}
+                        {% for track in playlist_data %}
+                            <div class="track-item" id="track-{{ track.index }}" draggable="true" data-track-title="{{ track.title }}" data-artwork-url="{{ track.thumbnail }}">
+                                <img src="{{ track.thumbnail }}" alt="{{ track.title }}" class="track-artwork">
+                                <p class="track-title">{{ track.title }}</p>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+
+         {% if error_message %}
+          <div class="alert alert-danger mt-3">{{ error_message }}</div>
+        {% endif %}
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        const trackItems = document.querySelectorAll('.track-item');
+        const tierContents = document.querySelectorAll('.tier-content');
+    
+        let draggedItem = null;
+    
+        trackItems.forEach(trackItem => {
+            trackItem.addEventListener('dragstart', (event) => {
+                draggedItem = event.target;
+                event.dataTransfer.setData('text/plain', event.target.id);
+            });
+        });
+        
+          trackItems.forEach(trackItem => {
+            trackItem.addEventListener('dragend', (event) => {
+                draggedItem = null;
+            });
+        });
+    
+    
+        const scrollSpeed = 10;
+    
+    
+        document.addEventListener('dragover', (event) => {
+        if(!draggedItem){
+            return
+        }
+           const scrollThreshold = 100;
+           const scrollUpThreshold = 100;
+           const scrollDownThreshold = window.innerHeight - scrollThreshold;
+    
+    
+    
+            if (event.clientY < scrollUpThreshold) {
+              window.scrollBy(0, -scrollSpeed);
+          } else if (event.clientY > scrollDownThreshold){
+             window.scrollBy(0, scrollSpeed);
+          }
+        });
+    
+    
+       tierContents.forEach(dropZone => {
+            dropZone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+            });
+            dropZone.addEventListener('drop', (event) => {
+                event.preventDefault();
+                const trackId = event.dataTransfer.getData('text/plain');
+                const trackItem = document.getElementById(trackId);
+                 if (trackItem) {
+                     dropZone.appendChild(trackItem);
+                 }
+            });
+        });
+    </script>
+</body>
+</html>
