@@ -18,7 +18,7 @@
             <button type="submit" class="btn btn-primary">Load Playlist</button>
         </form>
 
-        <div class="tier-list-container mt-4">
+       <div id="tier-list-capture" class="tier-list-container mt-4">
             <div class="tier-row">
                 <div class="tier-label tier-s">S</div>
                 <div class="tier-content" data-tier="S"></div>
@@ -44,7 +44,7 @@
                 <div class="tier-content" data-tier="F"></div>
             </div>
            <div class="tier-row">
-                <div class="tier-label unsorted-tier"> Unsorted </div>
+                <div class="tier-label unsorted-tier"> N/A </div>
                 <div class="tier-content" data-tier="unsorted" >
                     {% if playlist_data %}
                         {% for track in playlist_data %}
@@ -57,18 +57,21 @@
                 </div>
             </div>
         </div>
-
-
-         {% if error_message %}
+        <button id="download-btn" class="btn btn-primary mt-3">Download Tier List</button>
+        {% if error_message %}
           <div class="alert alert-danger mt-3">{{ error_message }}</div>
         {% endif %}
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+      <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script>
         const trackItems = document.querySelectorAll('.track-item');
         const tierContents = document.querySelectorAll('.tier-content');
+         const downloadBtn = document.getElementById('download-btn');
+        const tierListCapture = document.getElementById('tier-list-capture')
+         const unsortedTier = document.querySelector('.tier-content[data-tier="unsorted"]')
     
         let draggedItem = null;
     
@@ -118,6 +121,29 @@
                  if (trackItem) {
                      dropZone.appendChild(trackItem);
                  }
+            });
+        });
+    
+      downloadBtn.addEventListener('click', () => {
+          html2canvas(tierListCapture, {
+                backgroundColor: '#2a2a2a',
+                 useCORS: true,
+                 allowTaint: true
+            }).then(canvas => {
+             const scale = 600 / canvas.width;
+             const height = canvas.height * scale;
+             const newCanvas = document.createElement("canvas");
+             newCanvas.width = 600;
+             newCanvas.height = height;
+             const ctx = newCanvas.getContext("2d");
+             ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, newCanvas.width,newCanvas.height);
+                const imgData = newCanvas.toDataURL('image/jpeg', 0.95);
+                const a = document.createElement('a');
+                a.href = imgData;
+                a.download = 'tier_list.jpg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
             });
         });
     </script>
