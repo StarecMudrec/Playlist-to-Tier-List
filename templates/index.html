@@ -6,6 +6,47 @@
     <title>Playlist Tier List Maker</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .tier-label {
+            min-width: 10px;
+            width: auto;
+            padding: 0 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-sizing: content-box;
+            transition: width 0.2s ease;
+            white-space: nowrap;
+            position: relative;
+        }
+        
+        .tier-label input {
+            background: transparent;
+            border: none;
+            font-weight: bold;
+            text-align: center;
+            outline: none;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            font-size: 1rem;
+            min-width: 10px;
+            width: 100%;
+            flex: 1;
+        }
+        
+        .tier-content {
+            min-width: 0;
+            flex-grow: 1;
+        }
+        
+        .tier-row {
+            display: flex;
+            margin-bottom: 5px;
+            min-height: 60px;
+        }
+    </style>
 </head>
 <body>
     <div class="container dark-theme">
@@ -18,34 +59,48 @@
             <button type="submit" class="btn btn-primary">Load Playlist</button>
         </form>
 
-       <div id="tier-list-capture" class="tier-list-container mt-4">
+        <div id="tier-list-capture" class="tier-list-container mt-4">
             <div class="tier-row">
-                <div class="tier-label tier-s">S</div>
+                <div class="tier-label tier-s">
+                    <input type="text" value="S" class="tier-name">
+                </div>
                 <div class="tier-content" data-tier="S"></div>
             </div>
             <div class="tier-row">
-                <div class="tier-label tier-a">A</div>
+                <div class="tier-label tier-a">
+                    <input type="text" value="A" class="tier-name">
+                </div>
                 <div class="tier-content" data-tier="A"></div>
             </div>
             <div class="tier-row">
-                <div class="tier-label tier-b">B</div>
+                <div class="tier-label tier-b">
+                    <input type="text" value="B" class="tier-name">
+                </div>
                 <div class="tier-content" data-tier="B"></div>
             </div>
             <div class="tier-row">
-                 <div class="tier-label tier-c">C</div>
+                <div class="tier-label tier-c">
+                    <input type="text" value="C" class="tier-name">
+                </div>
                 <div class="tier-content" data-tier="C"></div>
             </div>
-              <div class="tier-row">
-                <div class="tier-label tier-d">D</div>
+            <div class="tier-row">
+                <div class="tier-label tier-d">
+                    <input type="text" value="D" class="tier-name">
+                </div>
                 <div class="tier-content" data-tier="D"></div>
             </div>
-              <div class="tier-row">
-                <div class="tier-label tier-f">F</div>
+            <div class="tier-row">
+                <div class="tier-label tier-f">
+                    <input type="text" value="F" class="tier-name">
+                </div>
                 <div class="tier-content" data-tier="F"></div>
             </div>
-           <div class="tier-row">
-                <div class="tier-label unsorted-tier"> N/A </div>
-                <div class="tier-content" data-tier="unsorted" >
+            <div class="tier-row">
+                <div class="tier-label unsorted-tier">
+                    <input type="text" value="N/A" class="tier-name">
+                </div>
+                <div class="tier-content" data-tier="unsorted">
                     {% if playlist_data %}
                         {% for track in playlist_data %}
                             <div class="track-item" id="track-{{ track.index }}" draggable="true" data-track-title="{{ track.title }}" data-artwork-url="{{ track.thumbnail }}">
@@ -69,12 +124,53 @@
     <script>
         const trackItems = document.querySelectorAll('.track-item');
         const tierContents = document.querySelectorAll('.tier-content');
-         const downloadBtn = document.getElementById('download-btn');
-        const tierListCapture = document.getElementById('tier-list-capture')
-         const unsortedTier = document.querySelector('.tier-content[data-tier="unsorted"]')
+        const downloadBtn = document.getElementById('download-btn');
+        const tierListCapture = document.getElementById('tier-list-capture');
+        const tierNameInputs = document.querySelectorAll('.tier-name');
     
         let draggedItem = null;
     
+        // Initialize tier labels
+        tierNameInputs.forEach(input => {
+            updateTierLabelWidth(input);
+            
+            input.addEventListener('input', function() {
+                updateTierLabelWidth(this);
+            });
+            
+            input.addEventListener('mousedown', function(e) {
+                e.stopPropagation();
+            });
+            
+            input.addEventListener('blur', function() {
+                if(this.value.trim() === '') {
+                    this.value = this.defaultValue;
+                    updateTierLabelWidth(this);
+                }
+            });
+        });
+        
+        function updateTierLabelWidth(input) {
+            const tempSpan = document.createElement('span');
+            tempSpan.style.visibility = 'hidden';
+            tempSpan.style.whiteSpace = 'nowrap';
+            tempSpan.style.font = window.getComputedStyle(input).font;
+            tempSpan.textContent = input.value || input.placeholder;
+            
+            document.body.appendChild(tempSpan);
+            const textWidth = tempSpan.getBoundingClientRect().width;
+            document.body.removeChild(tempSpan);
+            
+            // Calculate total width including padding (15px on each side)
+            const totalWidth = textWidth + 30;
+            
+            // Set width on the parent .tier-label
+            input.parentElement.style.width = `${totalWidth}px`;
+            
+            // Set width on the input to match text width
+            input.style.width = `${textWidth}px`;
+        }
+
         trackItems.forEach(trackItem => {
             trackItem.addEventListener('dragstart', (event) => {
                 draggedItem = event.target;
@@ -82,35 +178,30 @@
             });
         });
         
-          trackItems.forEach(trackItem => {
+        trackItems.forEach(trackItem => {
             trackItem.addEventListener('dragend', (event) => {
                 draggedItem = null;
             });
         });
     
-    
         const scrollSpeed = 10;
     
-    
         document.addEventListener('dragover', (event) => {
-        if(!draggedItem){
-            return
-        }
-           const scrollThreshold = 100;
-           const scrollUpThreshold = 100;
-           const scrollDownThreshold = window.innerHeight - scrollThreshold;
-    
-    
+            if(!draggedItem){
+                return;
+            }
+            const scrollThreshold = 100;
+            const scrollUpThreshold = 100;
+            const scrollDownThreshold = window.innerHeight - scrollThreshold;
     
             if (event.clientY < scrollUpThreshold) {
-              window.scrollBy(0, -scrollSpeed);
-          } else if (event.clientY > scrollDownThreshold){
-             window.scrollBy(0, scrollSpeed);
-          }
+                window.scrollBy(0, -scrollSpeed);
+            } else if (event.clientY > scrollDownThreshold){
+                window.scrollBy(0, scrollSpeed);
+            }
         });
     
-    
-       tierContents.forEach(dropZone => {
+        tierContents.forEach(dropZone => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
             });
@@ -118,32 +209,36 @@
                 event.preventDefault();
                 const trackId = event.dataTransfer.getData('text/plain');
                 const trackItem = document.getElementById(trackId);
-                 if (trackItem) {
-                     dropZone.appendChild(trackItem);
-                 }
+                if (trackItem) {
+                    dropZone.appendChild(trackItem);
+                }
             });
         });
     
-      downloadBtn.addEventListener('click', () => {
-          html2canvas(tierListCapture, {
+        downloadBtn.addEventListener('click', () => {
+            tierNameInputs.forEach(input => {
+                input.disabled = true;
+                input.style.pointerEvents = 'none';
+            });
+            
+            html2canvas(tierListCapture, {
                 backgroundColor: '#2a2a2a',
-                 useCORS: true,
-                 allowTaint: true
+                useCORS: true,
+                allowTaint: true,
+                scale: 2
             }).then(canvas => {
-             const scale = 600 / canvas.width;
-             const height = canvas.height * scale;
-             const newCanvas = document.createElement("canvas");
-             newCanvas.width = 600;
-             newCanvas.height = height;
-             const ctx = newCanvas.getContext("2d");
-             ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, newCanvas.width,newCanvas.height);
-                const imgData = newCanvas.toDataURL('image/jpeg', 0.95);
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
                 const a = document.createElement('a');
                 a.href = imgData;
                 a.download = 'tier_list.jpg';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
+                
+                tierNameInputs.forEach(input => {
+                    input.disabled = false;
+                    input.style.pointerEvents = 'auto';
+                });
             });
         });
     </script>

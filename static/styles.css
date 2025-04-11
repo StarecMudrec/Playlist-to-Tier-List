@@ -26,6 +26,10 @@ h1, h3, label {
     width: 100%;
 }
 
+.tier-content {
+    flex-grow: 1; /* Занимает все доступное пространство */
+}
+
 .tier-label {
     width: 50px;
     height: 50px;
