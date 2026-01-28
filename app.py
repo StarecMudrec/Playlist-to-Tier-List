@@ -117,6 +117,14 @@ def _yt_dlp_items_from_url(user_input: str):
         if not title:
             continue
         thumb = e.get("thumbnail") or ""
+
+        # yt-dlp with extract_flat often doesn't include thumbnails for YouTube playlists.
+        # We can reliably derive a thumbnail URL from the video id.
+        if not thumb:
+            ie_key = (e.get("ie_key") or info.get("extractor_key") or "").lower()
+            vid = e.get("id") or ""
+            if ("youtube" in ie_key) and re.fullmatch(r"[A-Za-z0-9_-]{11}", vid):
+                thumb = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
         idx += 1
         items.append({"title": title, "thumbnail": thumb, "id": e.get("id") or f"{idx}"})
 
