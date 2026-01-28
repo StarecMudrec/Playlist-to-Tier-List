@@ -111,7 +111,7 @@
                     {% if playlist_data %}
                         {% for track in playlist_data %}
                             <div class="track-item" id="track-{{ track.index }}" draggable="true" data-track-title="{{ track.title }}" data-artwork-url="{{ track.thumbnail }}">
-                                <img src="{{ track.thumbnail }}" alt="{{ track.title }}" class="track-artwork" crossorigin="anonymous">
+                                <img src="{{ track.thumbnail }}" alt="{{ track.title }}" class="track-artwork" crossorigin="anonymous" draggable="false">
                                 <p class="track-title">{{ track.title }}</p>
                             </div>
                         {% endfor %}
@@ -179,8 +179,10 @@
 
         trackItems.forEach(trackItem => {
             trackItem.addEventListener('dragstart', (event) => {
-                draggedItem = event.target;
-                event.dataTransfer.setData('text/plain', event.target.id);
+                // Always drag the whole card, even if the user starts on the image/text.
+                const item = event.currentTarget;
+                draggedItem = item;
+                event.dataTransfer.setData('text/plain', item.id);
             });
         });
         
