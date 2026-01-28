@@ -111,7 +111,7 @@
                     {% if playlist_data %}
                         {% for track in playlist_data %}
                             <div class="track-item" id="track-{{ track.index }}" draggable="true" data-track-title="{{ track.title }}" data-artwork-url="{{ track.thumbnail }}">
-                                <img src="{{ track.thumbnail }}" alt="{{ track.title }}" class="track-artwork">
+                                <img src="{{ track.thumbnail }}" alt="{{ track.title }}" class="track-artwork" crossorigin="anonymous">
                                 <p class="track-title">{{ track.title }}</p>
                             </div>
                         {% endfor %}
