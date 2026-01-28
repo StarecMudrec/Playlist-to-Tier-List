@@ -49,14 +49,21 @@
     </style>
 </head>
 <body>
-    <div class="container dark-theme">
-        <h1 class="mt-4 mb-4">Playlist Tier List Maker</h1>
-        <form method="post">
+    <div class="container dark-theme app-shell">
+        <div class="page-header mb-3">
+            <h1 class="mb-1">Playlist Tier List Maker</h1>
+            <div class="text-muted small">Paste a Yandex Music playlist link or an iframe snippet, then drag tracks into tiers.</div>
+        </div>
+
+        <form method="post" class="playlist-form">
             <div class="form-group">
                 <label for="playlist_url">Playlist URL:</label>
-                <input type="text" class="form-control" id="playlist_url" name="playlist_url" required>
+                <input type="text" class="form-control" id="playlist_url" name="playlist_url" placeholder="https://music.yandex.ru/users/.../playlists/... or iframe snippet" required>
             </div>
-            <button type="submit" class="btn btn-primary">Load Playlist</button>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <button type="submit" class="btn btn-primary">Load Playlist</button>
+                <button id="download-btn" type="button" class="btn btn-outline-light">Download Tier List</button>
+            </div>
         </form>
 
         <div id="tier-list-capture" class="tier-list-container mt-4">
@@ -112,7 +119,6 @@
                 </div>
             </div>
         </div>
-        <button id="download-btn" class="btn btn-primary mt-3">Download Tier List</button>
         {% if error_message %}
           <div class="alert alert-danger mt-3">{{ error_message|safe }}</div>
         {% endif %}
