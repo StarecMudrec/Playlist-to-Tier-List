@@ -124,6 +124,9 @@ h1, h3, label { color: var(--text); }
     display: grid !important;
     grid-template-columns: repeat(var(--capture-cols, 6), minmax(0, 1fr));
     align-content: start;
+    gap: 8px;
+    padding: 8px;
+    min-height: 72px;
 }
 
 .capture-export .track-item{
@@ -134,6 +137,15 @@ h1, h3, label { color: var(--text); }
     width: 100%;
     height: auto;
     aspect-ratio: 1 / 1;
+}
+
+.capture-export .tier-row{
+    margin-bottom: 6px;
+    min-height: 48px;
+}
+
+.capture-export .tier-label{
+    height: 44px;
 }
 
 .tracks-container {

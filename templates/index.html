@@ -251,14 +251,23 @@
                         const target = 4 / 3;
                         let bestCols = 6;
                         let bestDiff = Infinity;
+                        let bestIsWideEnough = false;
                         for (let cols = 2; cols <= 12; cols++) {
                             captureEl.style.setProperty('--capture-cols', String(cols));
+                            // Force reflow so the next measurement reflects the new grid columns
+                            void captureEl.offsetHeight;
                             const r = captureEl.getBoundingClientRect();
                             const ratio = r.height > 0 ? (r.width / r.height) : 0;
                             const diff = Math.abs(ratio - target);
-                            if (diff < bestDiff) {
+                            const isWideEnough = ratio >= target;
+                            // Prefer ratios >= 4:3 so the export doesn't look "too tall"
+                            if (
+                                (!bestIsWideEnough && isWideEnough) ||
+                                (bestIsWideEnough === isWideEnough && diff < bestDiff)
+                            ) {
                                 bestDiff = diff;
                                 bestCols = cols;
+                                bestIsWideEnough = isWideEnough;
                             }
                         }
                         captureEl.style.setProperty('--capture-cols', String(bestCols));
