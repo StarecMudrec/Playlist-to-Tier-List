@@ -3,6 +3,7 @@ from yandex_music import Client
 import re
 import logging
 from urllib.parse import urlparse
+import os
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -101,4 +102,6 @@ def index():
                         error_message=error_message)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.getenv("PORT", "5000"))
+    debug = os.getenv("FLASK_DEBUG", "0") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug)
