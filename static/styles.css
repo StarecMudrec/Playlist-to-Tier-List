@@ -24,8 +24,7 @@ body {
 .app-shell {
     max-width: none;
     width: 100%;
-    margin-top: 28px;
-    margin-bottom: 40px;
+    margin: 28px 40px 40px;
     padding: 22px;
     border-radius: 16px;
     background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
@@ -222,8 +221,8 @@ h1, h3, label { color: var(--text); }
 
 /* Mobile tweaks */
 @media (max-width: 576px){
-    .app-shell.container{
-        margin-top: 14px;
+    .app-shell{
+        margin: 14px 14px 20px;
         padding: 14px;
     }
     .track-item{
