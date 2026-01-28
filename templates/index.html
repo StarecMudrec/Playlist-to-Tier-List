@@ -228,23 +228,45 @@
             });
             
             html2canvas(tierListCapture, {
-                backgroundColor: '#2a2a2a',
+                // Use a solid background to avoid transparent/rgba rendering issues
+                backgroundColor: '#0b1020',
                 useCORS: true,
-                allowTaint: true,
-                scale: 2
+                // If any image is cross-origin without CORS headers, the canvas becomes tainted and export fails.
+                // Keeping this false avoids "black exports" and lets us show a proper error instead.
+                allowTaint: false,
+                imageTimeout: 15000,
+                scale: 1.5,
+                scrollX: 0,
+                scrollY: -window.scrollY,
+                onclone: (doc) => {
+                    // Ensure the cloned document uses a solid background for capture
+                    doc.body.style.background = '#0b1020';
+                    const captureEl = doc.getElementById('tier-list-capture');
+                    if (captureEl) {
+                        captureEl.style.background = '#0b1020';
+                    }
+                }
             }).then(canvas => {
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                const a = document.createElement('a');
-                a.href = imgData;
-                a.download = 'tier_list.jpg';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                
-                tierNameInputs.forEach(input => {
-                    input.disabled = false;
-                    input.style.pointerEvents = 'auto';
-                });
+                try {
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    const a = document.createElement('a');
+                    a.href = imgData;
+                    a.download = 'tier_list.jpg';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                } catch (e) {
+                    alert(
+                        "Export failed. Most likely some cover images are blocked by CORS.\n" +
+                        "Try a playlist with fewer/other covers, or run through a proxy that adds CORS headers."
+                    );
+                    console.error(e);
+                } finally {
+                    tierNameInputs.forEach(input => {
+                        input.disabled = false;
+                        input.style.pointerEvents = 'auto';
+                    });
+                }
             });
         });
     </script>
