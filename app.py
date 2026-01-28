@@ -69,8 +69,11 @@ def get_playlist_info(playlist_url):
             logging.error("Ссылка вида /playlists/lk.* не содержит owner/id для API. Нужен iframe.")
             return None
 
-        # Инициализация клиента с современными параметрами
-        client = Client()
+        # Инициализация клиента.
+        # Для приватных плейлистов/“Мне нравится” часто требуется авторизация.
+        ym_token = os.getenv("YM_TOKEN")
+        client = Client(ym_token) if ym_token else Client()
+        client.init()
         
         # Получаем плейлист с указанием владельца
         playlist = client.users_playlists(playlist_id, user_id=user_id)
