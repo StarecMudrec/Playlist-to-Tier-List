@@ -119,6 +119,23 @@ h1, h3, label { color: var(--text); }
     border-radius: 14px;
 }
 
+/* Export-only layout helpers (html2canvas) */
+.capture-export .tier-content{
+    display: grid !important;
+    grid-template-columns: repeat(var(--capture-cols, 6), minmax(0, 1fr));
+    align-content: start;
+}
+
+.capture-export .track-item{
+    width: auto;
+}
+
+.capture-export .track-artwork{
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+}
+
 .tracks-container {
     display: flex;
     flex-wrap: wrap;

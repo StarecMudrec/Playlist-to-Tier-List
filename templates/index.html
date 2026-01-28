@@ -246,6 +246,22 @@
                     const captureEl = doc.getElementById('tier-list-capture');
                     if (captureEl) {
                         captureEl.style.background = '#0b1020';
+                        // Pick a column count that makes the capture area closest to 4:3 (width:height)
+                        captureEl.classList.add('capture-export');
+                        const target = 4 / 3;
+                        let bestCols = 6;
+                        let bestDiff = Infinity;
+                        for (let cols = 2; cols <= 12; cols++) {
+                            captureEl.style.setProperty('--capture-cols', String(cols));
+                            const r = captureEl.getBoundingClientRect();
+                            const ratio = r.height > 0 ? (r.width / r.height) : 0;
+                            const diff = Math.abs(ratio - target);
+                            if (diff < bestDiff) {
+                                bestDiff = diff;
+                                bestCols = cols;
+                            }
+                        }
+                        captureEl.style.setProperty('--capture-cols', String(bestCols));
                     }
                 }
             }).then(canvas => {
