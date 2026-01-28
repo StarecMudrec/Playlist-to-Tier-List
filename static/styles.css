@@ -15,19 +15,18 @@ html, body { height: 100%; }
 body {
     font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
     background-color: var(--bg);
-    background-image:
-        radial-gradient(1200px 600px at 15% 0%, rgba(99,102,241,0.22), transparent 55%),
-        radial-gradient(900px 500px at 90% 10%, rgba(16,185,129,0.15), transparent 55%);
+     /* No gradients */
+     background-image: none;
     color: var(--text);
 }
 
 .app-shell {
     max-width: none;
-    width: 100%;
-     margin: 28px 40px 40px;
+     width: 90vw;
+     margin: 28px auto 40px;
     padding: 22px;
     border-radius: 16px;
-     /* Solid surface (no gradient rectangle) */
+     /* Solid surface */
      background: rgba(255,255,255,0.055);
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
@@ -130,7 +129,7 @@ h1, h3, label { color: var(--text); }
     width: 140px;
     text-align: center;
     cursor: grab;
-    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05));
+     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.12);
     padding: 10px 10px 8px;
     border-radius: 14px;
@@ -195,8 +194,8 @@ h1, h3, label { color: var(--text); }
 }
 
 .btn-primary {
-    background: linear-gradient(180deg, rgba(99,102,241,1), rgba(79,70,229,1));
-    border-color: rgba(99,102,241,0.9);
+     background: rgba(99,102,241,1);
+     border-color: rgba(99,102,241,1);
 }
 
 .btn-primary:hover{
@@ -223,7 +222,8 @@ h1, h3, label { color: var(--text); }
 /* Mobile tweaks */
 @media (max-width: 576px){
      .app-shell{
-         margin: 14px 14px 20px;
+         width: 96vw;
+         margin: 14px auto 20px;
          padding: 14px;
      }
     .track-item{
