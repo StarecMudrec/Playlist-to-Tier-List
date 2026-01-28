@@ -24,10 +24,11 @@ body {
 .app-shell {
     max-width: none;
     width: 100%;
-    margin: 28px 40px 40px;
+     margin: 28px 40px 40px;
     padding: 22px;
     border-radius: 16px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
+     /* Solid surface (no gradient rectangle) */
+     background: rgba(255,255,255,0.055);
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
 }
@@ -221,10 +222,10 @@ h1, h3, label { color: var(--text); }
 
 /* Mobile tweaks */
 @media (max-width: 576px){
-    .app-shell{
-        margin: 14px 14px 20px;
-        padding: 14px;
-    }
+     .app-shell{
+         margin: 14px 14px 20px;
+         padding: 14px;
+     }
     .track-item{
         width: 44vw;
     }
