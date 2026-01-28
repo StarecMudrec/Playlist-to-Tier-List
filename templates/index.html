@@ -114,7 +114,7 @@
         </div>
         <button id="download-btn" class="btn btn-primary mt-3">Download Tier List</button>
         {% if error_message %}
-          <div class="alert alert-danger mt-3">{{ error_message }}</div>
+          <div class="alert alert-danger mt-3">{{ error_message|safe }}</div>
         {% endif %}
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
