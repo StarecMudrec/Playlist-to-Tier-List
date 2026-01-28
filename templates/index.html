@@ -248,11 +248,16 @@
                         captureEl.style.background = '#0b1020';
                         // Pick a column count that makes the capture area closest to 4:3 (width:height)
                         captureEl.classList.add('capture-export');
+                        // Render export at a larger fixed width so huge playlists can fit more columns
+                        // and get closer to 4:3 without becoming extremely tall.
+                        captureEl.style.width = '1600px';
+                        captureEl.style.maxWidth = '1600px';
+                        captureEl.style.margin = '0';
                         const target = 4 / 3;
                         let bestCols = 6;
                         let bestDiff = Infinity;
                         let bestIsWideEnough = false;
-                        for (let cols = 2; cols <= 12; cols++) {
+                        for (let cols = 4; cols <= 40; cols++) {
                             captureEl.style.setProperty('--capture-cols', String(cols));
                             // Force reflow so the next measurement reflects the new grid columns
                             void captureEl.offsetHeight;

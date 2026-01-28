@@ -131,12 +131,27 @@ h1, h3, label { color: var(--text); }
 
 .capture-export .track-item{
     width: auto;
+    padding: 6px 6px 4px;
+    border-radius: 10px;
+    box-shadow: none;
 }
 
 .capture-export .track-artwork{
     width: 100%;
     height: auto;
     aspect-ratio: 1 / 1;
+}
+
+.capture-export .track-title{
+    margin-top: 4px;
+    font-size: 0.72em;
+    line-height: 1.1;
+    opacity: 0.9;
+    display: -webkit-box;
+    line-clamp: 1;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .capture-export .tier-row{
