@@ -18,10 +18,19 @@ def _first_url_from_text(text: str) -> str | None:
     return m.group(0) if m else None
 
 
-def _clean_url(url: str) -> str:
-    """Remove query params / fragments so regex matching is stable."""
+def _clean_url_for_matching(url: str) -> str:
+    """
+    Clean URL for regex matching where query params are usually irrelevant (e.g. Yandex links with utm_*).
+    IMPORTANT: Do not use this for yt-dlp inputs, because many playlist URLs (e.g. YouTube) rely on query params.
+    """
     parsed = urlparse(url)
     return parsed._replace(query="", fragment="").geturl()
+
+
+def _clean_url_for_ydl(url: str) -> str:
+    """Keep query params (needed for many playlist URLs), strip only fragments."""
+    parsed = urlparse(url)
+    return parsed._replace(fragment="").geturl()
 
 
 def extract_yandex_playlist_info(user_input: str):
@@ -39,7 +48,7 @@ def extract_yandex_playlist_info(user_input: str):
         return None, None
 
     url = raw if raw.startswith("http") else (_first_url_from_text(raw) or raw)
-    url = _clean_url(url)
+    url = _clean_url_for_matching(url)
 
     # /users/<user>/playlists/<id>
     m = re.search(r'music\.yandex\.(?:ru|com)/users/([^/]+)/playlists/([^/]+)$', url)
@@ -66,7 +75,7 @@ def _yt_dlp_items_from_url(user_input: str):
         return None
 
     url = raw if raw.startswith("http") else (_first_url_from_text(raw) or raw)
-    url = _clean_url(url)
+    url = _clean_url_for_ydl(url)
 
     ydl_opts = {
         "quiet": True,
@@ -193,7 +202,7 @@ def index():
                 - Любые ссылки/плейлисты, которые умеет yt-dlp (YouTube/SoundCloud/и т.д.)<br>
                 <br>
                 Если у вас ссылка вида /playlists/lk.... — вставьте iframe-код плейлиста (как в “Поделиться”).<br>
-                Примечание: Spotify может не извлекаться через yt-dlp из-за ограничений платформы (DRM/метаданные)."""
+                Примечание: Spotify сейчас не поддерживается через yt-dlp (DRM)."""
             else:
                 playlist_data = [{
                     'index': idx + 1,
