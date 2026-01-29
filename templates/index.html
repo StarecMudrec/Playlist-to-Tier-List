@@ -110,6 +110,7 @@
                     {% if playlist_data %}
                         {% for track in playlist_data %}
                             <div class="track-item" id="track-{{ track.index }}" draggable="true" data-track-title="{{ track.title }}" data-artwork-url="{{ track.thumbnail }}">
+                                <button type="button" class="track-delete" title="Remove from tier list" onmousedown="event.stopPropagation(); event.preventDefault();">×</button>
                                 <img src="{{ track.thumbnail }}" alt="{{ track.title }}" class="track-artwork" crossorigin="anonymous" draggable="false">
                                 <p class="track-title">{{ track.title }}</p>
                             </div>
@@ -329,6 +330,13 @@
             if (e.target.classList.contains('tier-delete')) {
                 const row = e.target.closest('.tier-row');
                 if (row) deleteTier(row);
+            }
+            if (e.target.classList.contains('track-delete')) {
+                const trackItem = e.target.closest('.track-item');
+                if (trackItem) {
+                    trackItem.remove();
+                    savePlacements();
+                }
             }
         });
         

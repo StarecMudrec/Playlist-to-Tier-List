@@ -237,6 +237,10 @@ h1, h3, label { color: var(--text); }
     display: none !important;
 }
 
+.capture-export .track-item .track-delete {
+    display: none !important;
+}
+
 .tracks-container {
     display: flex;
     flex-wrap: wrap;
@@ -267,6 +271,36 @@ h1, h3, label { color: var(--text); }
 .track-item:active{
     cursor: grabbing;
     transform: translateY(0);
+}
+
+.track-item {
+    position: relative;
+}
+
+.track-item .track-delete {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.5);
+    color: rgba(255,255,255,0.9);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+    z-index: 2;
+}
+
+.track-item .track-delete:hover {
+    background: rgba(220,60,60,0.85);
+    color: #fff;
 }
 
 .track-artwork {
