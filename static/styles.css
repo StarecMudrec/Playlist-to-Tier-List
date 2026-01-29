@@ -167,39 +167,39 @@ h1, h3, label { color: var(--text); }
 
 /* Export-only: grid layout with auto-calculated columns for ~4:3 ratio */
 .capture-export {
-    width: var(--export-width, 1800px) !important;
+    width: var(--export-width, 1600px) !important;
     background: #0b1020 !important;
 }
 
 .capture-export .tier-content{
     display: grid !important;
-    grid-template-columns: repeat(var(--capture-cols, 8), 130px);
+    grid-template-columns: repeat(var(--capture-cols, 8), 140px);
     align-content: start;
-    gap: 8px;
-    padding: 10px;
+    gap: 6px;
+    padding: 8px;
     min-height: 70px;
     background: rgba(0,0,0,0.18) !important;
     justify-content: start;
 }
 
 .capture-export .track-item{
-    width: 130px;
-    padding: 8px 8px 6px;
-    border-radius: 12px;
+    width: 140px;
+    padding: 10px 10px 8px;
+    border-radius: 14px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .capture-export .track-artwork{
-    width: 114px;
-    height: 114px;
+    width: 120px;
+    height: 120px;
     object-fit: cover;
-    border-radius: 10px;
+    border-radius: 12px;
 }
 
 .capture-export .track-title{
-    margin-top: 6px;
-    font-size: 0.78em;
-    line-height: 1.2;
+    margin-top: 8px;
+    font-size: 0.85em;
+    line-height: 1.15;
     opacity: 0.95;
     display: -webkit-box;
     line-clamp: 2;
