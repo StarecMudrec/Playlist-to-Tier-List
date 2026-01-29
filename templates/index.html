@@ -429,16 +429,8 @@
                     }
                 });
                 
-                // Clear the playlist URL input
-                if (playlistUrlInput) {
-                    playlistUrlInput.value = '';
-                }
-                
-                // Clear all tiers: remove every track from the page (including N/A tier)
-                const allTracks = document.querySelectorAll('.track-item');
-                allTracks.forEach(track => track.remove());
-                
-                alert('All saved data has been cleared.');
+                // Reload the page with GET so the server returns a clean state (no link, no tracks)
+                window.location.href = window.location.pathname || '/';
             }
         });
         
