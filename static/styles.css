@@ -224,6 +224,9 @@ h1, h3, label { color: var(--text); }
 
 .track-item {
     width: 140px;
+    min-width: 140px;
+    flex-shrink: 0;
+    min-height: 200px;
     text-align: center;
     cursor: grab;
      background: rgba(255,255,255,0.07);
@@ -248,6 +251,8 @@ h1, h3, label { color: var(--text); }
 .track-artwork {
     width: 120px;
     height: 120px;
+    min-width: 80px;
+    min-height: 80px;
     object-fit: cover;
     display: block;
     margin: auto;
@@ -261,7 +266,7 @@ h1, h3, label { color: var(--text); }
 .track-title {
     margin-top: 8px;
     margin-bottom: 0;
-    font-size: 0.85em;
+    font-size: clamp(12px, 0.85em, 1em);
     line-height: 1.15;
     color: var(--text);
     opacity: 0.95;
@@ -328,10 +333,14 @@ h1, h3, label { color: var(--text); }
      }
     .track-item{
         width: 44vw;
+        min-width: 120px;
+        min-height: 180px;
     }
     .track-artwork{
         width: 100%;
         height: 44vw;
+        min-width: 80px;
+        min-height: 80px;
         max-height: 160px;
     }
 }
