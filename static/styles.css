@@ -168,6 +168,8 @@ h1, h3, label { color: var(--text); }
 /* Export-only: grid layout with auto-calculated columns for ~4:3 ratio */
 .capture-export {
     width: var(--export-width, 1600px) !important;
+    max-width: none !important;
+    min-width: var(--export-width, 1600px) !important;
     background: #0b1020 !important;
 }
 

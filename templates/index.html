@@ -482,12 +482,17 @@
                 scale: 1.5,
                 scrollX: 0,
                 scrollY: -window.scrollY,
+                windowWidth: bestWidth,
+                windowHeight: 10000, // Large enough, will be cropped
                 onclone: (doc) => {
                     doc.body.style.background = '#0b1020';
                     doc.body.style.color = '#f0f0f0';
                     const captureEl = doc.getElementById('tier-list-capture');
                     if (captureEl) {
                         captureEl.style.background = '#0b1020';
+                        captureEl.style.width = bestWidth + 'px';
+                        captureEl.style.maxWidth = 'none';
+                        captureEl.style.minWidth = bestWidth + 'px';
                         captureEl.classList.add('capture-export');
                         captureEl.style.setProperty('--capture-cols', bestCols);
                         captureEl.style.setProperty('--export-width', bestWidth + 'px');
