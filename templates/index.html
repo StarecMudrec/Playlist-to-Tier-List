@@ -474,15 +474,6 @@
                 }
             }
             
-            // Temporarily set width on the element before capture
-            const originalWidth = tierListCapture.style.width;
-            const originalMaxWidth = tierListCapture.style.maxWidth;
-            tierListCapture.style.width = bestWidth + 'px';
-            tierListCapture.style.maxWidth = 'none';
-            tierListCapture.style.setProperty('--capture-cols', bestCols);
-            tierListCapture.style.setProperty('--export-width', bestWidth + 'px');
-            tierListCapture.classList.add('capture-export');
-            
             html2canvas(tierListCapture, {
                 backgroundColor: '#0b1020',
                 useCORS: true,
@@ -492,38 +483,53 @@
                 scrollX: 0,
                 scrollY: -window.scrollY,
                 width: bestWidth,
+                height: undefined, // Let it calculate height automatically
                 onclone: (doc) => {
+                    // Set body width to match export width
                     doc.body.style.background = '#0b1020';
                     doc.body.style.color = '#f0f0f0';
                     doc.body.style.width = bestWidth + 'px';
                     doc.body.style.maxWidth = 'none';
+                    doc.body.style.overflow = 'visible';
+                    
+                    // Find and modify the capture element in the cloned document
                     const captureEl = doc.getElementById('tier-list-capture');
                     if (captureEl) {
                         captureEl.style.background = '#0b1020';
                         captureEl.style.width = bestWidth + 'px';
                         captureEl.style.maxWidth = 'none';
                         captureEl.style.minWidth = bestWidth + 'px';
+                        captureEl.style.boxSizing = 'border-box';
+                        captureEl.classList.add('capture-export');
                         captureEl.style.setProperty('--capture-cols', bestCols);
                         captureEl.style.setProperty('--export-width', bestWidth + 'px');
+                        
                         // Ensure all tier contents use the grid
                         captureEl.querySelectorAll('.tier-content').forEach(tc => {
                             tc.style.background = 'rgba(0,0,0,0.18)';
                         });
+                        
+                        // Also set width on any parent containers
+                        let parent = captureEl.parentElement;
+                        while (parent && parent !== doc.body) {
+                            parent.style.width = bestWidth + 'px';
+                            parent.style.maxWidth = 'none';
+                            parent = parent.parentElement;
+                        }
                     }
                 }
             }).then(canvas => {
-                // Restore original styles
-                tierListCapture.style.width = originalWidth;
-                tierListCapture.style.maxWidth = originalMaxWidth;
-                tierListCapture.classList.remove('capture-export');
-                
                 try {
-                    // If canvas width doesn't match, create a new canvas with correct dimensions
+                    // Verify and fix canvas dimensions if needed
+                    const expectedWidth = bestWidth * 1.5;
                     let finalCanvas = canvas;
-                    if (Math.abs(canvas.width - bestWidth * 1.5) > 10) {
+                    
+                    if (Math.abs(canvas.width - expectedWidth) > 5) {
+                        // Canvas width doesn't match - create corrected version
                         finalCanvas = document.createElement('canvas');
-                        finalCanvas.width = bestWidth * 1.5;
-                        finalCanvas.height = (canvas.height / canvas.width) * (bestWidth * 1.5);
+                        const scale = expectedWidth / canvas.width;
+                        finalCanvas.width = expectedWidth;
+                        finalCanvas.height = Math.round(canvas.height * scale);
                         const ctx = finalCanvas.getContext('2d');
                         ctx.drawImage(canvas, 0, 0, finalCanvas.width, finalCanvas.height);
                     }
