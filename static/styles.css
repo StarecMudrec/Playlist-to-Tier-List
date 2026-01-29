@@ -176,9 +176,10 @@ h1, h3, label { color: var(--text); }
     grid-auto-rows: var(--capture-card-h, 180px);
     align-content: start;
     gap: var(--capture-gap, 8px);
-    padding: 8px;
+    padding: var(--capture-tier-content-padding, 12px);
     min-height: 70px;
     background: rgba(0,0,0,0.18) !important;
+    box-sizing: border-box;
 }
 
 .capture-export .track-item{

@@ -421,6 +421,7 @@
             const TIER_LABEL_H = 48;
             const TIER_ROW_GAP = 6;
             const CONTAINER_PADDING = 16;
+            const TIER_CONTENT_PADDING = 12;  // vertical + horizontal padding inside each tier box
             const targetRatio = 4 / 3;
             
             const tierRows = document.querySelectorAll('.tier-row');
@@ -441,12 +442,13 @@
             let bestW = 0, bestH = 0;
             for (let cols = 4; cols <= 40; cols++) {
                 const contentW = cols * CARD_W + (cols - 1) * CARD_GAP;
-                const totalW = TIER_LABEL_W + contentW + CONTAINER_PADDING * 2;
+                const totalW = TIER_LABEL_W + contentW + TIER_CONTENT_PADDING * 2 + CONTAINER_PADDING * 2;
                 let totalH = CONTAINER_PADDING * 2;
                 tierRows.forEach((_, i) => {
                     const n = tracksPerTier[i];
                     const rows = n ? Math.ceil(n / cols) : 0;
-                    const tierContentH = rows ? (rows * CARD_H + (rows - 1) * CARD_GAP) : 0;
+                    const gridContentH = rows ? (rows * CARD_H + (rows - 1) * CARD_GAP) : 0;
+                    const tierContentH = gridContentH + TIER_CONTENT_PADDING * 2;
                     totalH += TIER_LABEL_H + tierContentH;
                 });
                 totalH += (tierRows.length - 1) * TIER_ROW_GAP;
@@ -485,6 +487,7 @@
                         captureEl.style.setProperty('--capture-card-w', CARD_W + 'px');
                         captureEl.style.setProperty('--capture-card-h', CARD_H + 'px');
                         captureEl.style.setProperty('--capture-gap', CARD_GAP + 'px');
+                        captureEl.style.setProperty('--capture-tier-content-padding', TIER_CONTENT_PADDING + 'px');
                         captureEl.querySelectorAll('.tier-content').forEach(tc => {
                             tc.style.background = 'rgba(0,0,0,0.18)';
                         });
