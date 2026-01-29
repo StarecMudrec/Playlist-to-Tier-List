@@ -413,34 +413,50 @@
                 input.style.pointerEvents = 'none';
             });
             
-            // Calculate optimal columns for ~4:3 ratio
-            const allTracks = Array.from(document.querySelectorAll('.track-item'));
-            const totalTracks = allTracks.length;
+            // Fixed card size (px) — cards never squish
+            const CARD_W = 140;
+            const CARD_H = 180;
+            const CARD_GAP = 8;
+            const TIER_LABEL_W = 100;
+            const TIER_LABEL_H = 48;
+            const TIER_ROW_GAP = 6;
+            const CONTAINER_PADDING = 16;
+            const targetRatio = 4 / 3;
+            
+            const tierRows = document.querySelectorAll('.tier-row');
+            const tracksPerTier = Array.from(tierRows).map(row => {
+                const content = row.querySelector('.tier-content');
+                return content ? content.querySelectorAll('.track-item').length : 0;
+            });
+            const totalTracks = tracksPerTier.reduce((a, b) => a + b, 0);
             if (totalTracks === 0) {
                 alert('No tracks to export');
+                getTierNameInputs().forEach(input => { input.disabled = false; input.style.pointerEvents = 'auto'; });
                 return;
             }
             
-            // Estimate: with 1600px width, try different column counts
-            // Target: width/height ratio close to 4:3 (1.33)
+            // Choose column count so overall image aspect ratio is ~4:3
             let bestCols = 8;
-            let bestRatio = Infinity;
-            const targetRatio = 4/3;
-            const cardWidth = 140; // approximate card width with gap
-            const cardHeight = 180; // approximate card height
-            const tierLabelHeight = 48;
-            const tierGap = 6;
-            const numTiers = document.querySelectorAll('.tier-row').length;
-            
+            let bestDiff = Infinity;
+            let bestW = 0, bestH = 0;
             for (let cols = 4; cols <= 40; cols++) {
-                const rowsPerTier = Math.ceil(totalTracks / numTiers / cols);
-                const estimatedWidth = cols * cardWidth;
-                const estimatedHeight = numTiers * (tierLabelHeight + rowsPerTier * cardHeight + tierGap);
-                const ratio = estimatedWidth / estimatedHeight;
+                const contentW = cols * CARD_W + (cols - 1) * CARD_GAP;
+                const totalW = TIER_LABEL_W + contentW + CONTAINER_PADDING * 2;
+                let totalH = CONTAINER_PADDING * 2;
+                tierRows.forEach((_, i) => {
+                    const n = tracksPerTier[i];
+                    const rows = n ? Math.ceil(n / cols) : 0;
+                    const tierContentH = rows ? (rows * CARD_H + (rows - 1) * CARD_GAP) : 0;
+                    totalH += TIER_LABEL_H + tierContentH;
+                });
+                totalH += (tierRows.length - 1) * TIER_ROW_GAP;
+                const ratio = totalW / totalH;
                 const diff = Math.abs(ratio - targetRatio);
-                if (diff < bestRatio) {
-                    bestRatio = diff;
+                if (diff < bestDiff) {
+                    bestDiff = diff;
                     bestCols = cols;
+                    bestW = totalW;
+                    bestH = totalH;
                 }
             }
             
@@ -449,19 +465,26 @@
                 useCORS: true,
                 allowTaint: false,
                 imageTimeout: 15000,
-                scale: 1.5,
+                scale: 1,
                 scrollX: 0,
-                scrollY: -window.scrollY,
-                onclone: (doc) => {
+                scrollY: 0,
+                onclone: (doc, el) => {
                     doc.body.style.background = '#0b1020';
                     doc.body.style.color = '#f0f0f0';
                     const captureEl = doc.getElementById('tier-list-capture');
                     if (captureEl) {
                         captureEl.style.background = '#0b1020';
-                        captureEl.style.width = '1600px';
+                        captureEl.style.width = bestW + 'px';
+                        captureEl.style.height = bestH + 'px';
+                        captureEl.style.minHeight = bestH + 'px';
+                        captureEl.style.padding = CONTAINER_PADDING + 'px';
+                        captureEl.style.boxSizing = 'border-box';
+                        captureEl.style.overflow = 'hidden';
                         captureEl.classList.add('capture-export');
                         captureEl.style.setProperty('--capture-cols', bestCols);
-                        // Ensure all tier contents use the grid
+                        captureEl.style.setProperty('--capture-card-w', CARD_W + 'px');
+                        captureEl.style.setProperty('--capture-card-h', CARD_H + 'px');
+                        captureEl.style.setProperty('--capture-gap', CARD_GAP + 'px');
                         captureEl.querySelectorAll('.tier-content').forEach(tc => {
                             tc.style.background = 'rgba(0,0,0,0.18)';
                         });
