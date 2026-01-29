@@ -228,6 +228,13 @@ h1, h3, label { color: var(--text); }
 
 .capture-export .tier-label{
     height: 44px;
+    justify-content: center;
+}
+
+/* Hide colour picker and delete button in the downloaded image only */
+.capture-export .tier-label .tier-color,
+.capture-export .tier-label .tier-delete {
+    display: none !important;
 }
 
 .tracks-container {
