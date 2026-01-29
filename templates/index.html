@@ -128,6 +128,7 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
+        window.PLAYLIST_URL_FOR_COOKIE = {{ playlist_url|tojson }};
         const trackItems = document.querySelectorAll('.track-item');
         const tierContents = document.querySelectorAll('.tier-content');
         const downloadBtn = document.getElementById('download-btn');
@@ -135,6 +136,58 @@
         const tierNameInputs = document.querySelectorAll('.tier-name');
     
         let draggedItem = null;
+    
+        function hashUrl(url) {
+            let h = 0;
+            for (let i = 0; i < url.length; i++) {
+                h = ((h << 5) - h) + url.charCodeAt(i);
+                h |= 0;
+            }
+            return 'tier_pl_' + Math.abs(h).toString(36);
+        }
+        function getPlacements() {
+            const url = window.PLAYLIST_URL_FOR_COOKIE;
+            if (!url) return null;
+            const name = hashUrl(url);
+            const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
+            if (!match) return null;
+            try {
+                return JSON.parse(decodeURIComponent(match[1]));
+            } catch (e) {
+                return null;
+            }
+        }
+        function savePlacements() {
+            const url = window.PLAYLIST_URL_FOR_COOKIE;
+            if (!url) return;
+            const placements = {};
+            tierContents.forEach(dropZone => {
+                const tier = dropZone.getAttribute('data-tier');
+                dropZone.querySelectorAll('.track-item').forEach(item => {
+                    const id = item.id;
+                    if (id && id.startsWith('track-')) {
+                        const index = id.slice(6);
+                        placements[index] = tier;
+                    }
+                });
+            });
+            const name = hashUrl(url);
+            const value = encodeURIComponent(JSON.stringify(placements));
+            const maxAge = 365 * 24 * 60 * 60;
+            document.cookie = name + '=' + value + '; path=/; max-age=' + maxAge + '; SameSite=Lax';
+        }
+    
+        // Restore placements from cookie when page has playlist data
+        if (window.PLAYLIST_URL_FOR_COOKIE && trackItems.length > 0) {
+            const placements = getPlacements();
+            if (placements) {
+                for (const [trackIndex, tierName] of Object.entries(placements)) {
+                    const el = document.getElementById('track-' + trackIndex);
+                    const tierContent = document.querySelector('.tier-content[data-tier="' + tierName + '"]');
+                    if (el && tierContent) tierContent.appendChild(el);
+                }
+            }
+        }
     
         // Initialize tier labels
         tierNameInputs.forEach(input => {
@@ -219,6 +272,7 @@
                 const trackItem = document.getElementById(trackId);
                 if (trackItem) {
                     dropZone.appendChild(trackItem);
+                    savePlacements();
                 }
             });
         });
