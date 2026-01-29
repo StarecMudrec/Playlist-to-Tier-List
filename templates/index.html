@@ -418,10 +418,11 @@
             const CARD_H = 180;
             const CARD_GAP = 8;
             const TIER_LABEL_W = 100;
+            const TIER_LABEL_GAP = 10;   // gap between tier label and tier content (matches .tier-row gap)
             const TIER_LABEL_H = 48;
             const TIER_ROW_GAP = 6;
             const CONTAINER_PADDING = 16;
-            const TIER_CONTENT_PADDING = 12;  // vertical + horizontal padding inside each tier box
+            const TIER_CONTENT_PADDING = 20;  // vertical + horizontal padding inside each tier box (extra on sides so cards don't stick out)
             const targetRatio = 4 / 3;
             
             const tierRows = document.querySelectorAll('.tier-row');
@@ -442,7 +443,7 @@
             let bestW = 0, bestH = 0;
             for (let cols = 4; cols <= 40; cols++) {
                 const contentW = cols * CARD_W + (cols - 1) * CARD_GAP;
-                const totalW = TIER_LABEL_W + contentW + TIER_CONTENT_PADDING * 2 + CONTAINER_PADDING * 2;
+                const totalW = TIER_LABEL_W + TIER_LABEL_GAP + contentW + TIER_CONTENT_PADDING * 2 + CONTAINER_PADDING * 2;
                 let totalH = CONTAINER_PADDING * 2;
                 tierRows.forEach((_, i) => {
                     const n = tracksPerTier[i];
