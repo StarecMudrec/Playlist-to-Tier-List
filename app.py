@@ -219,11 +219,12 @@ def index():
                     'id': track['id']
                 } for idx, track in enumerate(playlist_data)]
     
-    playlist_url_for_cookie = request.form.get('playlist_url', '').strip() if request.method == 'POST' and playlist_data else None
+    playlist_url = request.form.get('playlist_url', '').strip() if request.method == 'POST' else ''
+    
     return render_template('index.html',
                         playlist_data=playlist_data,
                         error_message=error_message,
-                        playlist_url=playlist_url_for_cookie)
+                        playlist_url=playlist_url)
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", "5000"))

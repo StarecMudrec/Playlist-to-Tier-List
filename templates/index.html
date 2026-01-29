@@ -58,7 +58,7 @@
         <form method="post" class="playlist-form">
             <div class="form-group">
                 <label for="playlist_url">Playlist URL:</label>
-                <input type="text" class="form-control" id="playlist_url" name="playlist_url" placeholder="https://music.yandex.ru/users/.../playlists/... or iframe snippet" required>
+                <input type="text" class="form-control" id="playlist_url" name="playlist_url" value="{{ playlist_url if playlist_url else '' }}" placeholder="https://music.yandex.ru/users/.../playlists/... or iframe snippet" required>
             </div>
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <button type="submit" class="btn btn-primary">Load Playlist</button>
@@ -128,64 +128,99 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
-        window.PLAYLIST_URL_FOR_COOKIE = {{ playlist_url|tojson }};
         const trackItems = document.querySelectorAll('.track-item');
         const tierContents = document.querySelectorAll('.tier-content');
         const downloadBtn = document.getElementById('download-btn');
         const tierListCapture = document.getElementById('tier-list-capture');
         const tierNameInputs = document.querySelectorAll('.tier-name');
+        const playlistUrlInput = document.getElementById('playlist_url');
     
         let draggedItem = null;
-    
-        function hashUrl(url) {
-            let h = 0;
-            for (let i = 0; i < url.length; i++) {
-                h = ((h << 5) - h) + url.charCodeAt(i);
-                h |= 0;
+        
+        // Generate a storage key based on playlist URL
+        function getStorageKey() {
+            const urlInput = document.getElementById('playlist_url');
+            const url = urlInput ? urlInput.value.trim() : '';
+            if (!url) {
+                // Fallback: use track IDs to create a unique key
+                const allTracks = document.querySelectorAll('.track-item');
+                const trackIds = Array.from(allTracks).map(item => item.id).sort().join(',');
+                return `tier_list_${trackIds.substring(0, 50)}`;
             }
-            return 'tier_pl_' + Math.abs(h).toString(36);
+            return `tier_list_${url}`;
         }
-        function getPlacements() {
-            const url = window.PLAYLIST_URL_FOR_COOKIE;
-            if (!url) return null;
-            const name = hashUrl(url);
-            const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
-            if (!match) return null;
-            try {
-                return JSON.parse(decodeURIComponent(match[1]));
-            } catch (e) {
-                return null;
-            }
-        }
+        
+        // Save track placements to localStorage
         function savePlacements() {
-            const url = window.PLAYLIST_URL_FOR_COOKIE;
-            if (!url) return;
+            const allTracks = document.querySelectorAll('.track-item');
+            if (allTracks.length === 0) return;
+            
             const placements = {};
-            tierContents.forEach(dropZone => {
-                const tier = dropZone.getAttribute('data-tier');
-                dropZone.querySelectorAll('.track-item').forEach(item => {
-                    const id = item.id;
-                    if (id && id.startsWith('track-')) {
-                        const index = id.slice(6);
-                        placements[index] = tier;
-                    }
+            document.querySelectorAll('.tier-content').forEach(tierContent => {
+                const tier = tierContent.getAttribute('data-tier');
+                const tracks = tierContent.querySelectorAll('.track-item');
+                tracks.forEach(track => {
+                    placements[track.id] = tier;
                 });
             });
-            const name = hashUrl(url);
-            const value = encodeURIComponent(JSON.stringify(placements));
-            const maxAge = 365 * 24 * 60 * 60;
-            document.cookie = name + '=' + value + '; path=/; max-age=' + maxAge + '; SameSite=Lax';
+            
+            // Save tier names
+            const tierNames = {};
+            document.querySelectorAll('.tier-name').forEach(input => {
+                const tierRow = input.closest('.tier-row');
+                const tierContent = tierRow.querySelector('.tier-content');
+                const tier = tierContent.getAttribute('data-tier');
+                tierNames[tier] = input.value;
+            });
+            
+            const storageKey = getStorageKey();
+            localStorage.setItem(storageKey, JSON.stringify({
+                placements: placements,
+                tierNames: tierNames
+            }));
         }
-    
-        // Restore placements from cookie when page has playlist data
-        if (window.PLAYLIST_URL_FOR_COOKIE && trackItems.length > 0) {
-            const placements = getPlacements();
-            if (placements) {
-                for (const [trackIndex, tierName] of Object.entries(placements)) {
-                    const el = document.getElementById('track-' + trackIndex);
-                    const tierContent = document.querySelector('.tier-content[data-tier="' + tierName + '"]');
-                    if (el && tierContent) tierContent.appendChild(el);
+        
+        // Load track placements from localStorage
+        function loadPlacements() {
+            const allTracks = document.querySelectorAll('.track-item');
+            if (allTracks.length === 0) return;
+            
+            const storageKey = getStorageKey();
+            const saved = localStorage.getItem(storageKey);
+            
+            if (!saved) return;
+            
+            try {
+                const data = JSON.parse(saved);
+                
+                // Restore tier names
+                if (data.tierNames) {
+                    document.querySelectorAll('.tier-name').forEach(input => {
+                        const tierRow = input.closest('.tier-row');
+                        const tierContent = tierRow.querySelector('.tier-content');
+                        const tier = tierContent.getAttribute('data-tier');
+                        if (data.tierNames[tier]) {
+                            input.value = data.tierNames[tier];
+                            updateTierLabelWidth(input);
+                        }
+                    });
                 }
+                
+                // Restore track placements
+                if (data.placements) {
+                    Object.keys(data.placements).forEach(trackId => {
+                        const trackItem = document.getElementById(trackId);
+                        const targetTier = data.placements[trackId];
+                        if (trackItem && targetTier) {
+                            const targetTierContent = document.querySelector(`.tier-content[data-tier="${targetTier}"]`);
+                            if (targetTierContent) {
+                                targetTierContent.appendChild(trackItem);
+                            }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Error loading placements:', e);
             }
         }
     
@@ -195,6 +230,7 @@
             
             input.addEventListener('input', function() {
                 updateTierLabelWidth(this);
+                savePlacements();
             });
             
             input.addEventListener('mousedown', function(e) {
@@ -206,6 +242,7 @@
                     this.value = this.defaultValue;
                     updateTierLabelWidth(this);
                 }
+                savePlacements();
             });
         });
         
@@ -355,6 +392,11 @@
                 }
             });
         });
+        
+        // Load placements when page loads (after a short delay to ensure DOM is ready)
+        setTimeout(() => {
+            loadPlacements();
+        }, 100);
     </script>
 </body>
 </html>
