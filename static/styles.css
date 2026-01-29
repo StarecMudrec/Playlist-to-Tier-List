@@ -78,6 +78,13 @@ h1, h3, label { color: var(--text); }
     font-size: 20px;
 }
 
+.tier-label-with-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px 0 12px;
+}
+
 .tier-label input.tier-name{
     background: transparent;
     border: none;
@@ -87,6 +94,45 @@ h1, h3, label { color: var(--text); }
     padding: 0;
     margin: 0;
     font-size: 1rem;
+    flex: 1;
+    min-width: 20px;
+}
+
+.tier-label input.tier-color {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.tier-label input.tier-color::-webkit-color-swatch-wrapper { padding: 2px; }
+.tier-label input.tier-color::-webkit-color-swatch { border-radius: 4px; border: none; }
+
+.tier-label .tier-delete {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.25);
+    color: rgba(0,0,0,0.8);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+}
+
+.tier-label .tier-delete:hover {
+    background: rgba(200,60,60,0.5);
+    color: #fff;
 }
 
 .tier-s { background-color: #FFD700; }

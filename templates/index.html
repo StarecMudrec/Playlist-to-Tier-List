@@ -10,30 +10,11 @@
         .tier-label {
             min-width: 10px;
             width: auto;
-            padding: 0 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             cursor: pointer;
             box-sizing: content-box;
             transition: width 0.2s ease;
             white-space: nowrap;
             position: relative;
-        }
-        
-        .tier-label input {
-            background: transparent;
-            border: none;
-            font-weight: bold;
-            text-align: center;
-            outline: none;
-            padding: 0;
-            margin: 0;
-            box-sizing: border-box;
-            font-size: 1rem;
-            min-width: 10px;
-            width: 100%;
-            flex: 1;
         }
         
         .tier-content {
@@ -67,46 +48,63 @@
             </div>
         </form>
 
-        <div id="tier-list-capture" class="tier-list-container mt-4">
-            <div class="tier-row">
-                <div class="tier-label tier-s">
+        <div class="d-flex align-items-center gap-2 mt-4 mb-2">
+            <button id="add-tier-btn" type="button" class="btn btn-outline-light">+ Add tier</button>
+        </div>
+        <div id="tier-list-capture" class="tier-list-container mt-2">
+            <div class="tier-row" data-tier-id="S">
+                <div class="tier-label tier-s tier-label-with-controls">
                     <input type="text" value="S" class="tier-name">
+                    <input type="color" class="tier-color" value="#FFD700" title="Tier color">
+                    <button type="button" class="tier-delete" title="Delete tier">×</button>
                 </div>
                 <div class="tier-content" data-tier="S"></div>
             </div>
-            <div class="tier-row">
-                <div class="tier-label tier-a">
+            <div class="tier-row" data-tier-id="A">
+                <div class="tier-label tier-a tier-label-with-controls">
                     <input type="text" value="A" class="tier-name">
+                    <input type="color" class="tier-color" value="#00FF7F" title="Tier color">
+                    <button type="button" class="tier-delete" title="Delete tier">×</button>
                 </div>
                 <div class="tier-content" data-tier="A"></div>
             </div>
-            <div class="tier-row">
-                <div class="tier-label tier-b">
+            <div class="tier-row" data-tier-id="B">
+                <div class="tier-label tier-b tier-label-with-controls">
                     <input type="text" value="B" class="tier-name">
+                    <input type="color" class="tier-color" value="#00BFFF" title="Tier color">
+                    <button type="button" class="tier-delete" title="Delete tier">×</button>
                 </div>
                 <div class="tier-content" data-tier="B"></div>
             </div>
-            <div class="tier-row">
-                <div class="tier-label tier-c">
+            <div class="tier-row" data-tier-id="C">
+                <div class="tier-label tier-c tier-label-with-controls">
                     <input type="text" value="C" class="tier-name">
+                    <input type="color" class="tier-color" value="#ADFF2F" title="Tier color">
+                    <button type="button" class="tier-delete" title="Delete tier">×</button>
                 </div>
                 <div class="tier-content" data-tier="C"></div>
             </div>
-            <div class="tier-row">
-                <div class="tier-label tier-d">
+            <div class="tier-row" data-tier-id="D">
+                <div class="tier-label tier-d tier-label-with-controls">
                     <input type="text" value="D" class="tier-name">
+                    <input type="color" class="tier-color" value="#FFA500" title="Tier color">
+                    <button type="button" class="tier-delete" title="Delete tier">×</button>
                 </div>
                 <div class="tier-content" data-tier="D"></div>
             </div>
-            <div class="tier-row">
-                <div class="tier-label tier-f">
+            <div class="tier-row" data-tier-id="F">
+                <div class="tier-label tier-f tier-label-with-controls">
                     <input type="text" value="F" class="tier-name">
+                    <input type="color" class="tier-color" value="#FF4500" title="Tier color">
+                    <button type="button" class="tier-delete" title="Delete tier">×</button>
                 </div>
                 <div class="tier-content" data-tier="F"></div>
             </div>
-            <div class="tier-row">
-                <div class="tier-label unsorted-tier">
+            <div class="tier-row tier-row-unsorted" data-tier-id="unsorted">
+                <div class="tier-label unsorted-tier tier-label-with-controls">
                     <input type="text" value="N/A" class="tier-name">
+                    <input type="color" class="tier-color" value="#9aa0a6" title="Tier color">
+                    <!-- no delete for unsorted -->
                 </div>
                 <div class="tier-content" data-tier="unsorted">
                     {% if playlist_data %}
@@ -129,15 +127,72 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
-        const trackItems = document.querySelectorAll('.track-item');
-        const tierContents = document.querySelectorAll('.tier-content');
         const downloadBtn = document.getElementById('download-btn');
         const clearStorageBtn = document.getElementById('clear-storage-btn');
         const tierListCapture = document.getElementById('tier-list-capture');
-        const tierNameInputs = document.querySelectorAll('.tier-name');
         const playlistUrlInput = document.getElementById('playlist_url');
     
         let draggedItem = null;
+        
+        function getTierContents() { return document.querySelectorAll('.tier-content'); }
+        function getTrackItems() { return document.querySelectorAll('.track-item'); }
+        function getTierNameInputs() { return document.querySelectorAll('.tier-name'); }
+        
+        function applyTierColor(tierRow, hexColor) {
+            const label = tierRow.querySelector('.tier-label');
+            if (label) label.style.backgroundColor = hexColor;
+        }
+        
+        function createTierRow(tierId, name, color) {
+            const row = document.createElement('div');
+            row.className = 'tier-row';
+            row.setAttribute('data-tier-id', tierId);
+            const hex = (color || '#9aa0a6').replace(/^#?/, '#');
+            row.innerHTML =
+                '<div class="tier-label tier-label-with-controls" style="background-color:' + hex + '">' +
+                '<input type="text" value="' + (name || 'New').replace(/"/g, '&quot;') + '" class="tier-name">' +
+                '<input type="color" class="tier-color" value="' + hex + '" title="Tier color">' +
+                '<button type="button" class="tier-delete" title="Delete tier">×</button>' +
+                '</div>' +
+                '<div class="tier-content" data-tier="' + tierId + '"></div>';
+            bindTierRowEvents(row);
+            return row;
+        }
+        
+        function bindTierRowEvents(row) {
+            const nameInput = row.querySelector('.tier-name');
+            const tierContent = row.querySelector('.tier-content');
+            if (nameInput) {
+                updateTierLabelWidth(nameInput);
+                nameInput.addEventListener('input', function() { updateTierLabelWidth(this); savePlacements(); });
+                nameInput.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                nameInput.addEventListener('blur', function() {
+                    if (this.value.trim() === '') { this.value = this.defaultValue || 'New'; updateTierLabelWidth(this); }
+                    savePlacements();
+                });
+            }
+            if (tierContent) {
+                tierContent.addEventListener('dragover', (e) => { e.preventDefault(); });
+                tierContent.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const trackId = e.dataTransfer.getData('text/plain');
+                    const trackItem = document.getElementById(trackId);
+                    if (trackItem) { tierContent.appendChild(trackItem); savePlacements(); }
+                });
+            }
+        }
+        
+        function deleteTier(tierRow) {
+            const tierContent = tierRow.querySelector('.tier-content');
+            const tierId = tierContent.getAttribute('data-tier');
+            if (tierId === 'unsorted') return;
+            const unsortedContent = document.querySelector('.tier-content[data-tier="unsorted"]');
+            if (!unsortedContent) return;
+            const tracks = tierContent.querySelectorAll('.track-item');
+            tracks.forEach(t => unsortedContent.appendChild(t));
+            tierRow.remove();
+            savePlacements();
+        }
         
         // Generate a storage key based on playlist URL
         function getStorageKey() {
@@ -166,19 +221,26 @@
                 });
             });
             
-            // Save tier names
+            // Save tier names and colors and order
             const tierNames = {};
-            document.querySelectorAll('.tier-name').forEach(input => {
-                const tierRow = input.closest('.tier-row');
-                const tierContent = tierRow.querySelector('.tier-content');
+            const tierColors = {};
+            const tierOrder = [];
+            document.querySelectorAll('.tier-row').forEach(row => {
+                const tierContent = row.querySelector('.tier-content');
                 const tier = tierContent.getAttribute('data-tier');
-                tierNames[tier] = input.value;
+                tierOrder.push(tier);
+                const nameInput = row.querySelector('.tier-name');
+                const colorInput = row.querySelector('.tier-color');
+                if (nameInput) tierNames[tier] = nameInput.value;
+                if (colorInput) tierColors[tier] = colorInput.value;
             });
             
             const storageKey = getStorageKey();
             localStorage.setItem(storageKey, JSON.stringify({
                 placements: placements,
-                tierNames: tierNames
+                tierNames: tierNames,
+                tierColors: tierColors,
+                tierOrder: tierOrder
             }));
         }
         
@@ -195,6 +257,21 @@
             try {
                 const data = JSON.parse(saved);
                 
+                // Restore custom tiers in correct order (create missing rows and insert at right position)
+                if (data.tierOrder && Array.isArray(data.tierOrder)) {
+                    const container = document.getElementById('tier-list-capture');
+                    const unsortedRow = container.querySelector('.tier-row-unsorted');
+                    for (let i = 0; i < data.tierOrder.length; i++) {
+                        const tierId = data.tierOrder[i];
+                        if (tierId === 'unsorted') continue;
+                        if (container.querySelector('.tier-row[data-tier-id="' + tierId + '"]')) continue;
+                        const nextId = data.tierOrder[i + 1];
+                        const nextRow = nextId ? container.querySelector('.tier-row[data-tier-id="' + nextId + '"]') : unsortedRow;
+                        const row = createTierRow(tierId, data.tierNames[tierId] || 'New', data.tierColors[tierId] || '#9aa0a6');
+                        container.insertBefore(row, nextRow || unsortedRow);
+                    }
+                }
+                
                 // Restore tier names
                 if (data.tierNames) {
                     document.querySelectorAll('.tier-name').forEach(input => {
@@ -204,6 +281,19 @@
                         if (data.tierNames[tier]) {
                             input.value = data.tierNames[tier];
                             updateTierLabelWidth(input);
+                        }
+                    });
+                }
+                
+                // Restore tier colors
+                if (data.tierColors) {
+                    document.querySelectorAll('.tier-color').forEach(input => {
+                        const tierRow = input.closest('.tier-row');
+                        const tierContent = tierRow.querySelector('.tier-content');
+                        const tier = tierContent.getAttribute('data-tier');
+                        if (data.tierColors[tier]) {
+                            input.value = data.tierColors[tier];
+                            applyTierColor(tierRow, data.tierColors[tier]);
                         }
                     });
                 }
@@ -226,24 +316,37 @@
             }
         }
     
-        // Initialize tier labels
-        tierNameInputs.forEach(input => {
+        // Event delegation for tier color and delete (works for initial + dynamically added tiers)
+        tierListCapture.addEventListener('input', function(e) {
+            if (e.target.classList.contains('tier-color')) {
+                const row = e.target.closest('.tier-row');
+                if (row) { applyTierColor(row, e.target.value); savePlacements(); }
+            }
+        });
+        tierListCapture.addEventListener('click', function(e) {
+            if (e.target.classList.contains('tier-delete')) {
+                const row = e.target.closest('.tier-row');
+                if (row) deleteTier(row);
+            }
+        });
+        
+        // Add tier button
+        document.getElementById('add-tier-btn').addEventListener('click', function() {
+            const container = document.getElementById('tier-list-capture');
+            const unsortedRow = container.querySelector('.tier-row-unsorted');
+            const tierId = 'custom-' + Date.now();
+            const row = createTierRow(tierId, 'New', '#9aa0a6');
+            container.insertBefore(row, unsortedRow);
+            savePlacements();
+        });
+        
+        // Initialize tier labels (initial rows only; new rows get bound in bindTierRowEvents)
+        getTierNameInputs().forEach(input => {
             updateTierLabelWidth(input);
-            
-            input.addEventListener('input', function() {
-                updateTierLabelWidth(this);
-                savePlacements();
-            });
-            
-            input.addEventListener('mousedown', function(e) {
-                e.stopPropagation();
-            });
-            
+            input.addEventListener('input', function() { updateTierLabelWidth(this); savePlacements(); });
+            input.addEventListener('mousedown', function(e) { e.stopPropagation(); });
             input.addEventListener('blur', function() {
-                if(this.value.trim() === '') {
-                    this.value = this.defaultValue;
-                    updateTierLabelWidth(this);
-                }
+                if (this.value.trim() === '') { this.value = this.defaultValue || 'New'; updateTierLabelWidth(this); }
                 savePlacements();
             });
         });
@@ -259,29 +362,22 @@
             const textWidth = tempSpan.getBoundingClientRect().width;
             document.body.removeChild(tempSpan);
             
-            // Calculate total width including padding (15px on each side)
-            const totalWidth = textWidth + 30;
+            // Total width: text + padding + color picker (+ delete + gaps if present)
+            const hasDelete = input.closest('.tier-row').querySelector('.tier-delete');
+            const controlsWidth = 24 + 6 + (hasDelete ? 26 + 6 : 0);
+            const totalWidth = textWidth + 30 + controlsWidth;
             
-            // Set width on the parent .tier-label
             input.parentElement.style.width = `${totalWidth}px`;
-            
-            // Set width on the input to match text width
             input.style.width = `${textWidth}px`;
         }
 
-        trackItems.forEach(trackItem => {
+        getTrackItems().forEach(trackItem => {
             trackItem.addEventListener('dragstart', (event) => {
-                // Always drag the whole card, even if the user starts on the image/text.
                 const item = event.currentTarget;
                 draggedItem = item;
                 event.dataTransfer.setData('text/plain', item.id);
             });
-        });
-        
-        trackItems.forEach(trackItem => {
-            trackItem.addEventListener('dragend', (event) => {
-                draggedItem = null;
-            });
+            trackItem.addEventListener('dragend', () => { draggedItem = null; });
         });
     
         const scrollSpeed = 10;
@@ -301,23 +397,18 @@
             }
         });
     
-        tierContents.forEach(dropZone => {
-            dropZone.addEventListener('dragover', (event) => {
-                event.preventDefault();
-            });
+        getTierContents().forEach(dropZone => {
+            dropZone.addEventListener('dragover', (event) => { event.preventDefault(); });
             dropZone.addEventListener('drop', (event) => {
                 event.preventDefault();
                 const trackId = event.dataTransfer.getData('text/plain');
                 const trackItem = document.getElementById(trackId);
-                if (trackItem) {
-                    dropZone.appendChild(trackItem);
-                    savePlacements();
-                }
+                if (trackItem) { dropZone.appendChild(trackItem); savePlacements(); }
             });
         });
     
         downloadBtn.addEventListener('click', () => {
-            tierNameInputs.forEach(input => {
+            getTierNameInputs().forEach(input => {
                 input.disabled = true;
                 input.style.pointerEvents = 'none';
             });
@@ -387,7 +478,7 @@
                     );
                     console.error(e);
                 } finally {
-                    tierNameInputs.forEach(input => {
+                    getTierNameInputs().forEach(input => {
                         input.disabled = false;
                         input.style.pointerEvents = 'auto';
                     });
@@ -419,7 +510,7 @@
                     'unsorted': 'N/A'
                 };
                 
-                tierNameInputs.forEach(input => {
+                getTierNameInputs().forEach(input => {
                     const tierRow = input.closest('.tier-row');
                     const tierContent = tierRow.querySelector('.tier-content');
                     const tier = tierContent.getAttribute('data-tier');
