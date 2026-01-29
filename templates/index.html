@@ -177,7 +177,9 @@
                     e.preventDefault();
                     const trackId = e.dataTransfer.getData('text/plain');
                     const trackItem = document.getElementById(trackId);
-                    if (trackItem) { tierContent.appendChild(trackItem); savePlacements(); }
+                    if (!trackItem) return;
+                    insertTrackAtDropPosition(tierContent, trackItem, e.clientX, e.clientY);
+                    savePlacements();
                 });
             }
         }
@@ -397,13 +399,32 @@
             }
         });
     
+        function insertTrackAtDropPosition(dropZone, trackItem, clientX, clientY) {
+            const dropTarget = document.elementFromPoint(clientX, clientY);
+            if (dropTarget) {
+                const trackInZone = dropTarget.closest ? dropTarget.closest('.track-item') : null;
+                if (trackInZone && dropZone.contains(trackInZone) && trackInZone !== trackItem) {
+                    const rect = trackInZone.getBoundingClientRect();
+                    const midX = rect.left + rect.width / 2;
+                    const midY = rect.top + rect.height / 2;
+                    const before = clientX < midX || clientY < midY;
+                    dropZone.insertBefore(trackItem, before ? trackInZone : trackInZone.nextElementSibling);
+                    return;
+                }
+            }
+            dropZone.appendChild(trackItem);
+        }
+
         getTierContents().forEach(dropZone => {
             dropZone.addEventListener('dragover', (event) => { event.preventDefault(); });
             dropZone.addEventListener('drop', (event) => {
                 event.preventDefault();
                 const trackId = event.dataTransfer.getData('text/plain');
                 const trackItem = document.getElementById(trackId);
-                if (trackItem) { dropZone.appendChild(trackItem); savePlacements(); }
+                if (trackItem) {
+                    insertTrackAtDropPosition(dropZone, trackItem, event.clientX, event.clientY);
+                    savePlacements();
+                }
             });
         });
     
