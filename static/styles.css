@@ -165,48 +165,45 @@ h1, h3, label { color: var(--text); }
     border-radius: 14px;
 }
 
-/* Export-only layout helpers (html2canvas) */
+/* Export-only: keep same layout and card sizes as on-screen (flex + fixed widths) */
 .capture-export .tier-content{
-    display: grid !important;
-    grid-template-columns: repeat(var(--capture-cols, 6), minmax(0, 1fr));
-    align-content: start;
-    gap: 8px;
-    padding: 8px;
-    min-height: 72px;
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+    min-height: 92px;
 }
 
 .capture-export .track-item{
-    width: auto;
-    padding: 6px 6px 4px;
-    border-radius: 10px;
-    box-shadow: none;
+    width: 140px;
+    padding: 10px 10px 8px;
+    border-radius: 14px;
 }
 
 .capture-export .track-artwork{
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1 / 1;
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
 }
 
 .capture-export .track-title{
-    margin-top: 4px;
-    font-size: 0.72em;
-    line-height: 1.1;
-    opacity: 0.9;
+    margin-top: 8px;
+    font-size: 0.85em;
+    line-height: 1.15;
     display: -webkit-box;
-    line-clamp: 1;
-    -webkit-line-clamp: 1;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
 .capture-export .tier-row{
-    margin-bottom: 6px;
-    min-height: 48px;
+    margin-bottom: 10px;
+    min-height: 60px;
 }
 
 .capture-export .tier-label{
-    height: 44px;
+    height: 56px;
 }
 
 .tracks-container {
