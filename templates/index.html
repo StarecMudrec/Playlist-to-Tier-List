@@ -179,7 +179,7 @@
                     const trackId = e.dataTransfer.getData('text/plain');
                     const trackItem = document.getElementById(trackId);
                     if (!trackItem) return;
-                    insertTrackAtDropPosition(tierContent, trackItem, e.clientX, e.clientY);
+                    doDropWithInsert(tierContent, trackItem, e.clientX, e.clientY);
                     savePlacements();
                 });
             }
@@ -407,8 +407,8 @@
             }
         });
     
-        function insertTrackAtDropPosition(dropZone, trackItem, clientX, clientY) {
-            const dropTarget = document.elementFromPoint(clientX, clientY);
+        function insertTrackAtDropPosition(dropZone, trackItem, clientX, clientY, elementUnderCursor) {
+            const dropTarget = elementUnderCursor != null ? elementUnderCursor : document.elementFromPoint(clientX, clientY);
             if (dropTarget) {
                 const trackInZone = dropTarget.closest ? dropTarget.closest('.track-item') : null;
                 if (trackInZone && dropZone.contains(trackInZone) && trackInZone !== trackItem) {
@@ -423,6 +423,18 @@
             dropZone.appendChild(trackItem);
         }
 
+        function doDropWithInsert(dropZone, trackItem, clientX, clientY) {
+            // Move dragged element off-screen so elementFromPoint returns what's actually underneath
+            trackItem.style.position = 'fixed';
+            trackItem.style.left = '-9999px';
+            trackItem.style.top = '-9999px';
+            const elementUnder = document.elementFromPoint(clientX, clientY);
+            insertTrackAtDropPosition(dropZone, trackItem, clientX, clientY, elementUnder);
+            trackItem.style.position = '';
+            trackItem.style.left = '';
+            trackItem.style.top = '';
+        }
+
         getTierContents().forEach(dropZone => {
             dropZone.addEventListener('dragover', (event) => { event.preventDefault(); });
             dropZone.addEventListener('drop', (event) => {
@@ -430,7 +442,7 @@
                 const trackId = event.dataTransfer.getData('text/plain');
                 const trackItem = document.getElementById(trackId);
                 if (trackItem) {
-                    insertTrackAtDropPosition(dropZone, trackItem, event.clientX, event.clientY);
+                    doDropWithInsert(dropZone, trackItem, event.clientX, event.clientY);
                     savePlacements();
                 }
             });
