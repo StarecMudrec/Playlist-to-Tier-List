@@ -413,12 +413,40 @@
                 input.style.pointerEvents = 'none';
             });
             
+            // Calculate optimal columns for ~4:3 ratio
+            const allTracks = Array.from(document.querySelectorAll('.track-item'));
+            const totalTracks = allTracks.length;
+            if (totalTracks === 0) {
+                alert('No tracks to export');
+                return;
+            }
+            
+            // Estimate: with 1600px width, try different column counts
+            // Target: width/height ratio close to 4:3 (1.33)
+            let bestCols = 8;
+            let bestRatio = Infinity;
+            const targetRatio = 4/3;
+            const cardWidth = 140; // approximate card width with gap
+            const cardHeight = 180; // approximate card height
+            const tierLabelHeight = 48;
+            const tierGap = 6;
+            const numTiers = document.querySelectorAll('.tier-row').length;
+            
+            for (let cols = 4; cols <= 40; cols++) {
+                const rowsPerTier = Math.ceil(totalTracks / numTiers / cols);
+                const estimatedWidth = cols * cardWidth;
+                const estimatedHeight = numTiers * (tierLabelHeight + rowsPerTier * cardHeight + tierGap);
+                const ratio = estimatedWidth / estimatedHeight;
+                const diff = Math.abs(ratio - targetRatio);
+                if (diff < bestRatio) {
+                    bestRatio = diff;
+                    bestCols = cols;
+                }
+            }
+            
             html2canvas(tierListCapture, {
-                // Use a solid background to avoid transparent/rgba rendering issues
                 backgroundColor: '#0b1020',
                 useCORS: true,
-                // If any image is cross-origin without CORS headers, the canvas becomes tainted and export fails.
-                // Keeping this false avoids "black exports" and lets us show a proper error instead.
                 allowTaint: false,
                 imageTimeout: 15000,
                 scale: 1.5,
@@ -426,10 +454,17 @@
                 scrollY: -window.scrollY,
                 onclone: (doc) => {
                     doc.body.style.background = '#0b1020';
+                    doc.body.style.color = '#f0f0f0';
                     const captureEl = doc.getElementById('tier-list-capture');
                     if (captureEl) {
                         captureEl.style.background = '#0b1020';
+                        captureEl.style.width = '1600px';
                         captureEl.classList.add('capture-export');
+                        captureEl.style.setProperty('--capture-cols', bestCols);
+                        // Ensure all tier contents use the grid
+                        captureEl.querySelectorAll('.tier-content').forEach(tc => {
+                            tc.style.background = 'rgba(0,0,0,0.18)';
+                        });
                     }
                 }
             }).then(canvas => {
