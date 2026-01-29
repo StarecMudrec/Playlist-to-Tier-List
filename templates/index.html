@@ -454,8 +454,9 @@
             const TIER_CONTENT_PADDING = 20;  // vertical + horizontal padding inside each tier box (extra on sides so cards don't stick out)
             const targetRatio = 4 / 3;
             
-            const tierRows = document.querySelectorAll('.tier-row');
-            const tracksPerTier = Array.from(tierRows).map(row => {
+            const allTierRows = document.querySelectorAll('.tier-row');
+            const tierRows = Array.from(allTierRows).filter(row => !row.classList.contains('tier-row-unsorted'));
+            const tracksPerTier = tierRows.map(row => {
                 const content = row.querySelector('.tier-content');
                 return content ? content.querySelectorAll('.track-item').length : 0;
             });
@@ -505,6 +506,8 @@
                     doc.body.style.color = '#f0f0f0';
                     const captureEl = doc.getElementById('tier-list-capture');
                     if (captureEl) {
+                        const unsortedRow = captureEl.querySelector('.tier-row-unsorted');
+                        if (unsortedRow) unsortedRow.style.display = 'none';
                         captureEl.style.background = '#0b1020';
                         captureEl.style.width = bestW + 'px';
                         captureEl.style.height = bestH + 'px';
