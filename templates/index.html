@@ -474,15 +474,6 @@
                 }
             }
             
-            // Temporarily set width on the element before capture
-            const originalWidth = tierListCapture.style.width;
-            const originalMaxWidth = tierListCapture.style.maxWidth;
-            tierListCapture.style.width = bestWidth + 'px';
-            tierListCapture.style.maxWidth = 'none';
-            tierListCapture.style.setProperty('--capture-cols', bestCols);
-            tierListCapture.style.setProperty('--export-width', bestWidth + 'px');
-            tierListCapture.classList.add('capture-export');
-            
             html2canvas(tierListCapture, {
                 backgroundColor: '#0b1020',
                 useCORS: true,
@@ -491,18 +482,18 @@
                 scale: 1.5,
                 scrollX: 0,
                 scrollY: -window.scrollY,
-                width: bestWidth,
+                windowWidth: bestWidth,
+                windowHeight: 10000, // Large enough, will be cropped
                 onclone: (doc) => {
                     doc.body.style.background = '#0b1020';
                     doc.body.style.color = '#f0f0f0';
-                    doc.body.style.width = bestWidth + 'px';
-                    doc.body.style.maxWidth = 'none';
                     const captureEl = doc.getElementById('tier-list-capture');
                     if (captureEl) {
                         captureEl.style.background = '#0b1020';
                         captureEl.style.width = bestWidth + 'px';
                         captureEl.style.maxWidth = 'none';
                         captureEl.style.minWidth = bestWidth + 'px';
+                        captureEl.classList.add('capture-export');
                         captureEl.style.setProperty('--capture-cols', bestCols);
                         captureEl.style.setProperty('--export-width', bestWidth + 'px');
                         // Ensure all tier contents use the grid
@@ -512,23 +503,8 @@
                     }
                 }
             }).then(canvas => {
-                // Restore original styles
-                tierListCapture.style.width = originalWidth;
-                tierListCapture.style.maxWidth = originalMaxWidth;
-                tierListCapture.classList.remove('capture-export');
-                
                 try {
-                    // If canvas width doesn't match, create a new canvas with correct dimensions
-                    let finalCanvas = canvas;
-                    if (Math.abs(canvas.width - bestWidth * 1.5) > 10) {
-                        finalCanvas = document.createElement('canvas');
-                        finalCanvas.width = bestWidth * 1.5;
-                        finalCanvas.height = (canvas.height / canvas.width) * (bestWidth * 1.5);
-                        const ctx = finalCanvas.getContext('2d');
-                        ctx.drawImage(canvas, 0, 0, finalCanvas.width, finalCanvas.height);
-                    }
-                    
-                    const imgData = finalCanvas.toDataURL('image/jpeg', 0.95);
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
                     const a = document.createElement('a');
                     a.href = imgData;
                     a.download = 'tier_list.jpg';
