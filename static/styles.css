@@ -167,42 +167,43 @@ h1, h3, label { color: var(--text); }
 
 /* Export-only: grid layout with auto-calculated columns for ~4:3 ratio */
 .capture-export {
-    width: 1600px !important;
+    width: var(--export-width, 1800px) !important;
     background: #0b1020 !important;
 }
 
 .capture-export .tier-content{
     display: grid !important;
-    grid-template-columns: repeat(var(--capture-cols, 8), minmax(0, 1fr));
+    grid-template-columns: repeat(var(--capture-cols, 8), 130px);
     align-content: start;
-    gap: 6px;
-    padding: 8px;
+    gap: 8px;
+    padding: 10px;
     min-height: 70px;
     background: rgba(0,0,0,0.18) !important;
+    justify-content: start;
 }
 
 .capture-export .track-item{
-    width: auto;
-    padding: 6px 6px 4px;
-    border-radius: 10px;
+    width: 130px;
+    padding: 8px 8px 6px;
+    border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .capture-export .track-artwork{
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1 / 1;
-    border-radius: 8px;
+    width: 114px;
+    height: 114px;
+    object-fit: cover;
+    border-radius: 10px;
 }
 
 .capture-export .track-title{
-    margin-top: 4px;
-    font-size: 0.72em;
-    line-height: 1.1;
-    opacity: 0.9;
+    margin-top: 6px;
+    font-size: 0.78em;
+    line-height: 1.2;
+    opacity: 0.95;
     display: -webkit-box;
-    line-clamp: 1;
-    -webkit-line-clamp: 1;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
