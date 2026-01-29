@@ -413,7 +413,7 @@
                 input.style.pointerEvents = 'none';
             });
             
-            // Calculate optimal columns for ~4:3 ratio with fixed card size 140x180
+            // Calculate optimal columns for ~4:3 ratio with fixed card size ~130x180
             const allTracks = Array.from(document.querySelectorAll('.track-item'));
             const totalTracks = allTracks.length;
             if (totalTracks === 0) {
@@ -421,13 +421,13 @@
                 return;
             }
             
-            // Fixed card dimensions in export (140px width, ~180px height including padding/gap)
-            const cardWidth = 140;
-            const cardGap = 6;
-            const cardHeight = 180; // card height (120px artwork + padding + title)
+            // Fixed card dimensions in export (130px width, ~180px height including padding/gap)
+            const cardWidth = 130;
+            const cardGap = 8;
+            const cardHeight = 180; // card height (114px artwork + padding + title)
             const tierLabelHeight = 48;
             const tierRowGap = 6;
-            const tierPadding = 8 * 2; // left + right padding
+            const tierPadding = 10 * 2; // left + right padding
             const numTiers = document.querySelectorAll('.tier-row').length;
             
             // Count tracks per tier
@@ -440,7 +440,7 @@
             
             // Try different column counts and export widths
             let bestCols = 8;
-            let bestWidth = 1600;
+            let bestWidth = 1800;
             let bestRatio = Infinity;
             const targetRatio = 4/3;
             const minCols = 4;
