@@ -63,6 +63,7 @@
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <button type="submit" class="btn btn-primary">Load Playlist</button>
                 <button id="download-btn" type="button" class="btn btn-outline-light">Download Tier List</button>
+                <button id="clear-storage-btn" type="button" class="btn btn-outline-light">Clear Saved Data</button>
             </div>
         </form>
 
@@ -131,6 +132,7 @@
         const trackItems = document.querySelectorAll('.track-item');
         const tierContents = document.querySelectorAll('.tier-content');
         const downloadBtn = document.getElementById('download-btn');
+        const clearStorageBtn = document.getElementById('clear-storage-btn');
         const tierListCapture = document.getElementById('tier-list-capture');
         const tierNameInputs = document.querySelectorAll('.tier-name');
         const playlistUrlInput = document.getElementById('playlist_url');
@@ -391,6 +393,53 @@
                     });
                 }
             });
+        });
+        
+        // Clear localStorage button handler
+        clearStorageBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all saved tier list data? This action cannot be undone.')) {
+                // Clear all tier_list_ keys from localStorage
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('tier_list_')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+                
+                // Reset tier names to defaults
+                const defaultTierNames = {
+                    'S': 'S',
+                    'A': 'A',
+                    'B': 'B',
+                    'C': 'C',
+                    'D': 'D',
+                    'F': 'F',
+                    'unsorted': 'N/A'
+                };
+                
+                tierNameInputs.forEach(input => {
+                    const tierRow = input.closest('.tier-row');
+                    const tierContent = tierRow.querySelector('.tier-content');
+                    const tier = tierContent.getAttribute('data-tier');
+                    if (defaultTierNames[tier]) {
+                        input.value = defaultTierNames[tier];
+                        updateTierLabelWidth(input);
+                    }
+                });
+                
+                // Move all tracks back to unsorted tier
+                const unsortedTier = document.querySelector('.tier-content[data-tier="unsorted"]');
+                if (unsortedTier) {
+                    const allTracks = document.querySelectorAll('.track-item');
+                    allTracks.forEach(track => {
+                        unsortedTier.appendChild(track);
+                    });
+                }
+                
+                alert('All saved data has been cleared.');
+            }
         });
         
         // Load placements when page loads (after a short delay to ensure DOM is ready)
