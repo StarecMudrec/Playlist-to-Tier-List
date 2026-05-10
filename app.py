@@ -42,15 +42,23 @@ def _is_spotify_url(url: str) -> bool:
 
 def _spotify_anon_token() -> str | None:
     """Get a Spotify access token from the web player endpoint.
-    Works with sp_dc cookie (set SPOTIFY_DC_COOKIE env var) or anonymously."""
+    Requires SPOTIFY_DC_COOKIE env var (sp_dc cookie from browser) on VPS deployments."""
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "application/json",
-        }
         sp_dc = os.getenv("SPOTIFY_DC_COOKIE")
-        if sp_dc:
-            headers["Cookie"] = f"sp_dc={sp_dc}"
+        if not sp_dc:
+            logging.warning("SPOTIFY_DC_COOKIE not set — cannot get Spotify token from VPS")
+            return None
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+            "Accept-Language": "en",
+            "Referer": "https://open.spotify.com/",
+            "Origin": "https://open.spotify.com",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "Cookie": f"sp_dc={sp_dc}",
+        }
         r = requests.get(
             "https://open.spotify.com/get_access_token",
             params={"reason": "transport", "productType": "web_player"},
@@ -58,7 +66,10 @@ def _spotify_anon_token() -> str | None:
             timeout=10,
         )
         r.raise_for_status()
-        return r.json().get("accessToken")
+        data = r.json()
+        if data.get("isAnonymous"):
+            logging.warning("Spotify returned anonymous token — sp_dc cookie may be expired")
+        return data.get("accessToken")
     except Exception as e:
         logging.warning(f"Spotify anon token failed: {e}")
         return None
