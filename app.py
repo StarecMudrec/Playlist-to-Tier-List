@@ -5,6 +5,8 @@ import re
 import logging
 from urllib.parse import urlparse
 import os
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -31,6 +33,10 @@ def _clean_url_for_ydl(url: str) -> str:
     """Keep query params (needed for many playlist URLs), strip only fragments."""
     parsed = urlparse(url)
     return parsed._replace(fragment="").geturl()
+
+
+def _is_spotify_url(url: str) -> bool:
+    return bool(re.search(r'open\.spotify\.com/(playlist|album)/', url))
 
 
 def extract_yandex_playlist_info(user_input: str):
