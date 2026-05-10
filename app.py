@@ -39,6 +39,52 @@ def _is_spotify_url(url: str) -> bool:
     return bool(re.search(r'open\.spotify\.com/(playlist|album)/', url))
 
 
+def _spotify_items_from_url(url: str):
+    client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        logging.warning("Spotify credentials not set  -  skipping Spotify fetch")
+        return None
+
+    m = re.search(r'open\.spotify\.com/(playlist|album)/([A-Za-z0-9]+)', url)
+    if not m:
+        return None
+
+    resource_type, resource_id = m.group(1), m.group(2)
+
+    try:
+        auth = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+        sp = spotipy.Spotify(auth_manager=auth)
+
+        items = []
+        if resource_type == "playlist":
+            page = sp.playlist_tracks(resource_id)
+        else:
+            page = sp.album_tracks(resource_id)
+
+        while page:
+            for item in page.get("items", []):
+                track = item.get("track") or item  # album_tracks returns tracks directly
+                if not track or not track.get("name"):
+                    continue
+                title = track["name"]
+                artists = ", ".join(a["name"] for a in track.get("artists", []))
+                images = track.get("album", {}).get("images", []) or []
+                thumb = images[0]["url"] if images else ""
+                items.append({
+                    "title": f"{title} - {artists}" if artists else title,
+                    "thumbnail": thumb,
+                    "id": track.get("id") or title,
+                })
+            page = sp.next(page) if page.get("next") else None
+
+        return items if items else None
+
+    except Exception as e:
+        logging.error(f"Spotify fetch error: {e}")
+        return None
+
+
 def extract_yandex_playlist_info(user_input: str):
     """
     Extract (user_id, playlist_id) from Yandex Music formats:
@@ -136,23 +182,27 @@ def _yt_dlp_items_from_url(user_input: str):
 
     return items if items else None
 
-def get_playlist_info(playlist_url):
-    """Yandex via yandex_music; everything else via yt-dlp."""
+def get_playlist_info(playlist_url, ym_token_override: str = None):
+    """Route to the right fetcher based on URL."""
     try:
-        user_id, playlist_id = extract_yandex_playlist_info(playlist_url)
+        raw = (playlist_url or "").strip()
 
-        # Yandex path
+        # Spotify path
+        if _is_spotify_url(raw):
+            return _spotify_items_from_url(raw)
+
+        # Yandex Music path
+        user_id, playlist_id = extract_yandex_playlist_info(raw)
         if user_id and playlist_id:
             if user_id == "lk":
                 logging.error("Ссылка вида /playlists/lk.* не содержит owner/id для API. Нужен iframe.")
                 return None
 
-            ym_token = os.getenv("YM_TOKEN")
+            ym_token = ym_token_override or os.getenv("YM_TOKEN")
             client = Client(ym_token) if ym_token else Client()
             client.init()
 
             playlist = client.users_playlists(playlist_id, user_id=user_id)
-        
             if not playlist:
                 logging.error("Плейлист не найден")
                 return None
@@ -163,74 +213,72 @@ def get_playlist_info(playlist_url):
                     track = track_short.track
                     if not track:
                         continue
-
                     title = track.title or "Без названия"
-                    artists = ', '.join(artist.name for artist in track.artists) if track.artists else "Неизвестный исполнитель"
-
+                    artists = ", ".join(a.name for a in track.artists) if track.artists else "Unknown"
                     cover_uri = None
-                    if hasattr(track, 'cover_uri') and track.cover_uri:
+                    if hasattr(track, "cover_uri") and track.cover_uri:
                         cover_uri = f"https://{track.cover_uri.replace('%%', '400x400')}"
-                    elif hasattr(track, 'albums') and track.albums and track.albums[0].cover_uri:
+                    elif hasattr(track, "albums") and track.albums and track.albums[0].cover_uri:
                         cover_uri = f"https://{track.albums[0].cover_uri.replace('%%', '400x400')}"
-
                     items.append({
-                        'title': f"{title} - {artists}",
-                        'thumbnail': cover_uri or '',
-                        'id': track.id
+                        "title": f"{title} - {artists}",
+                        "thumbnail": cover_uri or "",
+                        "id": track.id,
                     })
                 except Exception as track_error:
-                    logging.error(f"Ошибка обработки трека: {track_error}")
+                    logging.error(f"Track error: {track_error}")
                     continue
-
             return items if items else None
 
-        # Non-Yandex path (yt-dlp)
+        # Fallback: yt-dlp (YouTube, SoundCloud, etc.)
         return _yt_dlp_items_from_url(playlist_url)
 
     except Exception as e:
-        logging.error(f"Playlist error: {str(e)}")
+        logging.error(f"Playlist error: {e}")
         return None
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route("/", methods=["GET", "POST"])
 def index():
     playlist_data = None
     error_message = None
-    
-    if request.method == 'POST':
-        playlist_url = request.form.get('playlist_url', '').strip()
-        
+
+    if request.method == "POST":
+        playlist_url = request.form.get("playlist_url", "").strip()
+        ym_token = request.form.get("ym_token", "").strip() or None
+
         if not playlist_url:
-            error_message = "Введите ссылку на плейлист"
+            error_message = "Please enter a playlist URL."
         else:
-            playlist_data = get_playlist_info(playlist_url)
-            
+            playlist_data = get_playlist_info(playlist_url, ym_token_override=ym_token)
+
             if not playlist_data:
-                error_message = """Не удалось загрузить плейлист. Проверьте:<br>
-                - Доступность плейлиста<br>
-                - Правильность ссылки<br>
-                - Для приватных плейлистов требуется авторизация<br><br>
-                Поддерживаемые форматы:<br>
-                - https://music.yandex.ru/users/USER/playlists/ID<br>
-                - https://music.yandex.ru/iframe/playlist/USER/ID<br>
-                - или вставьте iframe-код (приложение само вытащит ссылку)<br>
-                - Любые ссылки/плейлисты, которые умеет yt-dlp (YouTube/SoundCloud/и т.д.)<br>
-                <br>
-                Если у вас ссылка вида /playlists/lk.... — вставьте iframe-код плейлиста (как в “Поделиться”).<br>
-                Примечание: Spotify сейчас не поддерживается через yt-dlp (DRM)."""
+                error_message = (
+                    "Could not load playlist. Check:<br>"
+                    "- The playlist is public<br>"
+                    "- The URL is correct<br>"
+                    "- For Yandex Music private playlists: paste your YM Token in the settings below<br>"
+                    "- For Spotify: set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET env vars<br><br>"
+                    "Supported formats:<br>"
+                    "- <code>https://open.spotify.com/playlist/...</code><br>"
+                    "- <code>https://music.yandex.ru/users/USER/playlists/ID</code><br>"
+                    "- <code>https://music.yandex.ru/iframe/playlist/USER/ID</code><br>"
+                    "- YouTube, SoundCloud, and anything supported by yt-dlp<br>"
+                    "- For Yandex <code>/playlists/lk.*</code> links, paste the iframe embed code instead."
+                )
             else:
-                playlist_data = [{
-                    'index': idx + 1,
-                    'title': track['title'],
-                    'thumbnail': track['thumbnail'],
-                    'id': track['id']
-                } for idx, track in enumerate(playlist_data)]
-    
-    playlist_url = request.form.get('playlist_url', '').strip() if request.method == 'POST' else ''
-    
-    return render_template('index.html',
-                        playlist_data=playlist_data,
-                        error_message=error_message,
-                        playlist_url=playlist_url)
+                playlist_data = [
+                    {"index": i + 1, "title": t["title"], "thumbnail": t["thumbnail"], "id": t["id"]}
+                    for i, t in enumerate(playlist_data)
+                ]
+
+    playlist_url = request.form.get("playlist_url", "").strip() if request.method == "POST" else ""
+
+    return render_template(
+        "index.html",
+        playlist_data=playlist_data,
+        error_message=error_message,
+        playlist_url=playlist_url,
+    )
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", "5000"))
