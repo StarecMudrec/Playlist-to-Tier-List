@@ -2,3 +2,4 @@ flask
 yandex_music
 yt-dlp
 spotipy
+requests

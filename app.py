@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import os
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
+import requests
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -39,49 +40,104 @@ def _is_spotify_url(url: str) -> bool:
     return bool(re.search(r'open\.spotify\.com/(playlist|album)/', url))
 
 
-def _spotify_items_from_url(url: str):
-    client_id = os.getenv("SPOTIFY_CLIENT_ID")
-    client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
-    if not client_id or not client_secret:
-        logging.warning("Spotify credentials not set  -  skipping Spotify fetch")
+def _spotify_anon_token() -> str | None:
+    """Get an anonymous Spotify access token from the web player endpoint."""
+    try:
+        r = requests.get(
+            "https://open.spotify.com/get_access_token",
+            params={"reason": "transport", "productType": "web_player"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept": "application/json",
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        return r.json().get("accessToken")
+    except Exception as e:
+        logging.warning(f"Spotify anon token failed: {e}")
         return None
 
+
+def _spotify_fetch_with_token(token: str, resource_type: str, resource_id: str):
+    """Fetch playlist or album tracks using a Bearer token."""
+    headers = {"Authorization": f"Bearer {token}"}
+    items = []
+
+    if resource_type == "playlist":
+        url = f"https://api.spotify.com/v1/playlists/{resource_id}/tracks"
+        params = {"limit": 100, "fields": "items(track(id,name,artists,album(images))),next"}
+    else:
+        url = f"https://api.spotify.com/v1/albums/{resource_id}/tracks"
+        params = {"limit": 50}
+
+    while url:
+        r = requests.get(url, headers=headers, params=params, timeout=10)
+        r.raise_for_status()
+        page = r.json()
+        params = {}  # only first request needs params; next URLs are complete
+
+        for item in page.get("items", []):
+            track = item.get("track") or item
+            if not track or not track.get("name"):
+                continue
+            title = track["name"]
+            artists = ", ".join(a["name"] for a in track.get("artists", []))
+            images = track.get("album", {}).get("images", []) or []
+            thumb = images[0]["url"] if images else ""
+            items.append({
+                "title": f"{title} - {artists}" if artists else title,
+                "thumbnail": thumb,
+                "id": track.get("id") or title,
+            })
+        url = page.get("next")
+
+    return items if items else None
+
+
+def _spotify_items_from_url(url: str):
     m = re.search(r'open\.spotify\.com/(playlist|album)/([A-Za-z0-9]+)', url)
     if not m:
         return None
-
     resource_type, resource_id = m.group(1), m.group(2)
 
+    # Try official API first (if credentials are configured)
+    client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
+    if client_id and client_secret:
+        try:
+            auth = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+            sp = spotipy.Spotify(auth_manager=auth)
+            items = []
+            page = sp.playlist_tracks(resource_id) if resource_type == "playlist" else sp.album_tracks(resource_id)
+            while page:
+                for item in page.get("items", []):
+                    track = item.get("track") or item
+                    if not track or not track.get("name"):
+                        continue
+                    title = track["name"]
+                    artists = ", ".join(a["name"] for a in track.get("artists", []))
+                    images = track.get("album", {}).get("images", []) or []
+                    thumb = images[0]["url"] if images else ""
+                    items.append({
+                        "title": f"{title} - {artists}" if artists else title,
+                        "thumbnail": thumb,
+                        "id": track.get("id") or title,
+                    })
+                page = sp.next(page) if page.get("next") else None
+            if items:
+                return items
+        except Exception as e:
+            logging.warning(f"Spotify official API failed, trying anon: {e}")
+
+    # Fallback: anonymous web-player token (no credentials needed)
     try:
-        auth = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
-        sp = spotipy.Spotify(auth_manager=auth)
-
-        items = []
-        if resource_type == "playlist":
-            page = sp.playlist_tracks(resource_id)
-        else:
-            page = sp.album_tracks(resource_id)
-
-        while page:
-            for item in page.get("items", []):
-                track = item.get("track") or item  # album_tracks returns tracks directly
-                if not track or not track.get("name"):
-                    continue
-                title = track["name"]
-                artists = ", ".join(a["name"] for a in track.get("artists", []))
-                images = track.get("album", {}).get("images", []) or []
-                thumb = images[0]["url"] if images else ""
-                items.append({
-                    "title": f"{title} - {artists}" if artists else title,
-                    "thumbnail": thumb,
-                    "id": track.get("id") or title,
-                })
-            page = sp.next(page) if page.get("next") else None
-
-        return items if items else None
-
+        token = _spotify_anon_token()
+        if not token:
+            return None
+        return _spotify_fetch_with_token(token, resource_type, resource_id)
     except Exception as e:
-        logging.error(f"Spotify fetch error: {e}")
+        logging.error(f"Spotify anon fetch error: {e}")
         return None
 
 
