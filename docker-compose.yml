@@ -1,6 +1,8 @@
 services:
   web:
     build: .
+    env_file:
+      - .env
     ports:
       # Bind only to localhost so the app isn't directly reachable from the Internet.
       - "127.0.0.1:5000:5000"
