@@ -41,15 +41,20 @@ def _is_spotify_url(url: str) -> bool:
 
 
 def _spotify_anon_token() -> str | None:
-    """Get an anonymous Spotify access token from the web player endpoint."""
+    """Get a Spotify access token from the web player endpoint.
+    Works with sp_dc cookie (set SPOTIFY_DC_COOKIE env var) or anonymously."""
     try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json",
+        }
+        sp_dc = os.getenv("SPOTIFY_DC_COOKIE")
+        if sp_dc:
+            headers["Cookie"] = f"sp_dc={sp_dc}"
         r = requests.get(
             "https://open.spotify.com/get_access_token",
             params={"reason": "transport", "productType": "web_player"},
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Accept": "application/json",
-            },
+            headers=headers,
             timeout=10,
         )
         r.raise_for_status()

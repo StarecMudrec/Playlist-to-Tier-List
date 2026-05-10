@@ -34,23 +34,22 @@ docker compose up --build
 - **SPOTIFY_CLIENT_ID**: Client ID от Spotify developer app
 - **SPOTIFY_CLIENT_SECRET**: Client Secret от Spotify developer app
 
-#### Как получить Spotify credentials
+#### Как настроить Spotify
 
-1. Зайди на [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) и залогинься
-2. Нажми **Create app**
-3. Заполни название и описание (любые), в поле **Redirect URI** введи `http://localhost` — нажми Add, потом Save
-4. Открой созданное приложение → **Settings** → скопируй **Client ID** и **Client Secret**
+**Способ 1 — `sp_dc` cookie (проще, не нужна регистрация):**
 
-Укажи их при запуске контейнера:
+1. Открой [open.spotify.com](https://open.spotify.com) в браузере и залогинься
+2. F12 → вкладка **Application** → **Cookies** → `https://open.spotify.com`
+3. Найди куку `sp_dc` и скопируй её значение
 
-```bash
-docker run --rm -p 5000:5000 \
-  -e SPOTIFY_CLIENT_ID=твой_client_id \
-  -e SPOTIFY_CLIENT_SECRET=твой_client_secret \
-  playlist-to-tier-list
+Укажи в `docker-compose.yml`:
+
+```yaml
+environment:
+  - SPOTIFY_DC_COOKIE=твоё_значение_sp_dc
 ```
 
-Или через `docker-compose.yml` — добавь в секцию `environment`:
+**Способ 2 — официальные API credentials** (если удалось зарегистрировать app на developer.spotify.com):
 
 ```yaml
 environment:
