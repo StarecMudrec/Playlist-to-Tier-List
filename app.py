@@ -1,9 +1,11 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 from yandex_music import Client
 import yt_dlp
 import re
 import logging
-from urllib.parse import urlparse
+import json
+import time
+from urllib.parse import urlparse, urlencode
 import os
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -12,71 +14,132 @@ import requests
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
-def _first_url_from_text(text: str) -> str | None:
-    """
-    If the user pastes an <iframe ...> snippet or any text that contains URLs,
-    grab the first one.
-    """
-    m = re.search(r'https?://[^"\s<>]+', text)
-    return m.group(0) if m else None
+# --- Spotify OAuth token management ---
+
+_SPOTIFY_TOKEN_FILE = "spotify_token.json"
+_spotify_token_cache = {}
 
 
-def _clean_url_for_matching(url: str) -> str:
-    """
-    Clean URL for regex matching where query params are usually irrelevant (e.g. Yandex links with utm_*).
-    IMPORTANT: Do not use this for yt-dlp inputs, because many playlist URLs (e.g. YouTube) rely on query params.
-    """
-    parsed = urlparse(url)
-    return parsed._replace(query="", fragment="").geturl()
-
-
-def _clean_url_for_ydl(url: str) -> str:
-    """Keep query params (needed for many playlist URLs), strip only fragments."""
-    parsed = urlparse(url)
-    return parsed._replace(fragment="").geturl()
-
-
-def _is_spotify_url(url: str) -> bool:
-    return bool(re.search(r'open\.spotify\.com/(playlist|album)/', url))
-
-
-def _spotify_anon_token() -> str | None:
-    """Get a Spotify access token from the web player endpoint.
-    Requires SPOTIFY_DC_COOKIE env var (sp_dc cookie from browser) on VPS deployments."""
+def _save_spotify_tokens(tokens: dict):
+    global _spotify_token_cache
+    refresh_token = tokens.get("refresh_token") or _spotify_token_cache.get("refresh_token")
+    _spotify_token_cache = {
+        "access_token": tokens["access_token"],
+        "refresh_token": refresh_token,
+        "expires_at": time.time() + tokens.get("expires_in", 3600) - 60,
+    }
     try:
-        sp_dc = os.getenv("SPOTIFY_DC_COOKIE")
-        if not sp_dc:
-            logging.warning("SPOTIFY_DC_COOKIE not set — cannot get Spotify token from VPS")
+        with open(_SPOTIFY_TOKEN_FILE, "w") as f:
+            json.dump(_spotify_token_cache, f)
+    except Exception as e:
+        logging.warning(f"Could not save Spotify token file: {e}")
+
+
+def _get_spotify_oauth_token() -> str | None:
+    global _spotify_token_cache
+    client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        return None
+
+    # Load from disk if in-memory cache is empty
+    if not _spotify_token_cache and os.path.exists(_SPOTIFY_TOKEN_FILE):
+        try:
+            with open(_SPOTIFY_TOKEN_FILE) as f:
+                _spotify_token_cache = json.load(f)
+        except Exception:
+            pass
+
+    if not _spotify_token_cache.get("refresh_token"):
+        return None
+
+    # Refresh access token if expired
+    if time.time() >= _spotify_token_cache.get("expires_at", 0):
+        try:
+            r = requests.post(
+                "https://accounts.spotify.com/api/token",
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": _spotify_token_cache["refresh_token"],
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                },
+                timeout=10,
+            )
+            r.raise_for_status()
+            _save_spotify_tokens(r.json())
+        except Exception as e:
+            logging.warning(f"Spotify token refresh failed: {e}")
             return None
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Accept": "application/json",
-            "Accept-Language": "en",
-            "Referer": "https://open.spotify.com/",
-            "Origin": "https://open.spotify.com",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
-            "Cookie": f"sp_dc={sp_dc}",
-        }
-        r = requests.get(
-            "https://open.spotify.com/get_access_token",
-            params={"reason": "transport", "productType": "web_player"},
-            headers=headers,
+
+    return _spotify_token_cache.get("access_token")
+
+
+def spotify_is_connected() -> bool:
+    return bool(_spotify_token_cache.get("refresh_token") or os.path.exists(_SPOTIFY_TOKEN_FILE))
+
+
+# --- Spotify OAuth routes ---
+
+@app.route("/spotify/login")
+def spotify_login():
+    client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    redirect_uri = os.getenv("SPOTIFY_REDIRECT_URI")
+    if not client_id or not redirect_uri:
+        return "SPOTIFY_CLIENT_ID and SPOTIFY_REDIRECT_URI must be set in .env", 400
+    params = urlencode({
+        "client_id": client_id,
+        "response_type": "code",
+        "redirect_uri": redirect_uri,
+        "scope": "playlist-read-private playlist-read-collaborative",
+    })
+    return redirect(f"https://accounts.spotify.com/authorize?{params}")
+
+
+@app.route("/spotify/callback")
+def spotify_callback():
+    code = request.args.get("code")
+    error = request.args.get("error")
+    if error or not code:
+        return redirect(url_for("index"))
+
+    client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
+    redirect_uri = os.getenv("SPOTIFY_REDIRECT_URI")
+
+    try:
+        r = requests.post(
+            "https://accounts.spotify.com/api/token",
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": redirect_uri,
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
             timeout=10,
         )
         r.raise_for_status()
-        data = r.json()
-        if data.get("isAnonymous"):
-            logging.warning("Spotify returned anonymous token — sp_dc cookie may be expired")
-        return data.get("accessToken")
+        _save_spotify_tokens(r.json())
+        logging.info("Spotify OAuth: token saved successfully")
     except Exception as e:
-        logging.warning(f"Spotify anon token failed: {e}")
-        return None
+        logging.error(f"Spotify OAuth callback error: {e}")
 
+    return redirect(url_for("index"))
+
+
+@app.route("/spotify/disconnect")
+def spotify_disconnect():
+    global _spotify_token_cache
+    _spotify_token_cache = {}
+    if os.path.exists(_SPOTIFY_TOKEN_FILE):
+        os.remove(_SPOTIFY_TOKEN_FILE)
+    return redirect(url_for("index"))
+
+
+# --- Spotify fetching helpers ---
 
 def _spotify_fetch_with_token(token: str, resource_type: str, resource_id: str):
-    """Fetch playlist or album tracks using a Bearer token."""
     headers = {"Authorization": f"Bearer {token}"}
     items = []
 
@@ -91,7 +154,7 @@ def _spotify_fetch_with_token(token: str, resource_type: str, resource_id: str):
         r = requests.get(url, headers=headers, params=params, timeout=10)
         r.raise_for_status()
         page = r.json()
-        params = {}  # only first request needs params; next URLs are complete
+        params = {}
 
         for item in page.get("items", []):
             track = item.get("track") or item
@@ -111,13 +174,25 @@ def _spotify_fetch_with_token(token: str, resource_type: str, resource_id: str):
     return items if items else None
 
 
+def _is_spotify_url(url: str) -> bool:
+    return bool(re.search(r'open\.spotify\.com/(playlist|album)/', url))
+
+
 def _spotify_items_from_url(url: str):
     m = re.search(r'open\.spotify\.com/(playlist|album)/([A-Za-z0-9]+)', url)
     if not m:
         return None
     resource_type, resource_id = m.group(1), m.group(2)
 
-    # Try official API first (if credentials are configured)
+    # 1. Try OAuth user token (most reliable)
+    token = _get_spotify_oauth_token()
+    if token:
+        try:
+            return _spotify_fetch_with_token(token, resource_type, resource_id)
+        except Exception as e:
+            logging.warning(f"Spotify OAuth fetch failed: {e}")
+
+    # 2. Try client credentials (may fail for playlists since Spotify API change Nov 2024)
     client_id = os.getenv("SPOTIFY_CLIENT_ID")
     client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
     if client_id and client_secret:
@@ -144,29 +219,30 @@ def _spotify_items_from_url(url: str):
             if items:
                 return items
         except Exception as e:
-            logging.warning(f"Spotify official API failed, trying anon: {e}")
+            logging.warning(f"Spotify client credentials failed: {e}")
 
-    # Fallback: anonymous web-player token (no credentials needed)
-    try:
-        token = _spotify_anon_token()
-        if not token:
-            return None
-        return _spotify_fetch_with_token(token, resource_type, resource_id)
-    except Exception as e:
-        logging.error(f"Spotify anon fetch error: {e}")
-        return None
+    logging.error("All Spotify auth methods failed. Connect Spotify via /spotify/login.")
+    return None
+
+
+# --- Yandex URL parser ---
+
+def _first_url_from_text(text: str) -> str | None:
+    m = re.search(r'https?://[^"\s<>]+', text)
+    return m.group(0) if m else None
+
+
+def _clean_url_for_matching(url: str) -> str:
+    parsed = urlparse(url)
+    return parsed._replace(query="", fragment="").geturl()
+
+
+def _clean_url_for_ydl(url: str) -> str:
+    parsed = urlparse(url)
+    return parsed._replace(fragment="").geturl()
 
 
 def extract_yandex_playlist_info(user_input: str):
-    """
-    Extract (user_id, playlist_id) from Yandex Music formats:
-    - https://music.yandex.ru/users/<user>/playlists/<id>
-    - https://music.yandex.ru/iframe/playlist/<user>/<id>
-    - <iframe ... src="...">...</iframe>  (we'll pull the URL out)
-
-    Note: links like /playlists/lk.<uuid> don't contain the owner+numeric id; for those,
-    ask the user to paste the iframe snippet (it includes /iframe/playlist/<user>/<id>).
-    """
     raw = (user_input or "").strip()
     if not raw:
         return None, None
@@ -174,17 +250,14 @@ def extract_yandex_playlist_info(user_input: str):
     url = raw if raw.startswith("http") else (_first_url_from_text(raw) or raw)
     url = _clean_url_for_matching(url)
 
-    # /users/<user>/playlists/<id>
     m = re.search(r'music\.yandex\.(?:ru|com)/users/([^/]+)/playlists/([^/]+)$', url)
     if m:
         return m.group(1), m.group(2)
 
-    # /iframe/playlist/<user>/<id>
     m = re.search(r'music\.yandex\.(?:ru|com)/iframe/playlist/([^/]+)/([^/]+)$', url)
     if m:
         return m.group(1), m.group(2)
 
-    # New format: /playlists/lk.<uuid> (not enough info to call users_playlists)
     m = re.search(r'music\.yandex\.(?:ru|com)/playlists/(lk\.[^/]+)$', url)
     if m:
         return "lk", m.group(1)
@@ -193,7 +266,6 @@ def extract_yandex_playlist_info(user_input: str):
 
 
 def _yt_dlp_items_from_url(user_input: str):
-    """Use yt-dlp to extract entries (works for many sites; not all Spotify cases are extractable)."""
     raw = (user_input or "").strip()
     if not raw:
         return None
@@ -209,7 +281,6 @@ def _yt_dlp_items_from_url(user_input: str):
         "ignoreerrors": True,
     }
 
-    # Use cookies if present (helps for some sites; harmless otherwise)
     if os.path.exists("cookies.txt"):
         ydl_opts["cookiefile"] = "cookies.txt"
 
@@ -225,7 +296,6 @@ def _yt_dlp_items_from_url(user_input: str):
 
     entries = info.get("entries")
     if not entries:
-        # Not a playlist? Treat as a single item.
         title = info.get("title")
         if not title:
             return None
@@ -241,9 +311,6 @@ def _yt_dlp_items_from_url(user_input: str):
         if not title:
             continue
         thumb = e.get("thumbnail") or ""
-
-        # yt-dlp with extract_flat often doesn't include thumbnails for YouTube playlists.
-        # We can reliably derive a thumbnail URL from the video id.
         if not thumb:
             ie_key = (e.get("ie_key") or info.get("extractor_key") or "").lower()
             vid = e.get("id") or ""
@@ -254,16 +321,14 @@ def _yt_dlp_items_from_url(user_input: str):
 
     return items if items else None
 
+
 def get_playlist_info(playlist_url, ym_token_override: str = None):
-    """Route to the right fetcher based on URL."""
     try:
         raw = (playlist_url or "").strip()
 
-        # Spotify path
         if _is_spotify_url(raw):
             return _spotify_items_from_url(raw)
 
-        # Yandex Music path
         user_id, playlist_id = extract_yandex_playlist_info(raw)
         if user_id and playlist_id:
             if user_id == "lk":
@@ -276,7 +341,6 @@ def get_playlist_info(playlist_url, ym_token_override: str = None):
 
             playlist = client.users_playlists(playlist_id, user_id=user_id)
             if not playlist:
-                logging.error("Плейлист не найден")
                 return None
 
             items = []
@@ -302,12 +366,12 @@ def get_playlist_info(playlist_url, ym_token_override: str = None):
                     continue
             return items if items else None
 
-        # Fallback: yt-dlp (YouTube, SoundCloud, etc.)
         return _yt_dlp_items_from_url(playlist_url)
 
     except Exception as e:
         logging.error(f"Playlist error: {e}")
         return None
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -328,8 +392,8 @@ def index():
                     "Could not load playlist. Check:<br>"
                     "- The playlist is public<br>"
                     "- The URL is correct<br>"
-                    "- For Yandex Music private playlists: paste your YM Token in the settings below<br>"
-                    "- For Spotify: set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET env vars<br><br>"
+                    "- For Spotify: click <b>Connect Spotify</b> below and log in<br>"
+                    "- For Yandex Music private playlists: paste your YM Token in the settings below<br><br>"
                     "Supported formats:<br>"
                     "- <code>https://open.spotify.com/playlist/...</code><br>"
                     "- <code>https://music.yandex.ru/users/USER/playlists/ID</code><br>"
@@ -345,12 +409,18 @@ def index():
 
     playlist_url = request.form.get("playlist_url", "").strip() if request.method == "POST" else ""
 
+    # Load token cache from disk on first request
+    _get_spotify_oauth_token()
+
     return render_template(
         "index.html",
         playlist_data=playlist_data,
         error_message=error_message,
         playlist_url=playlist_url,
+        spotify_connected=spotify_is_connected(),
+        spotify_enabled=bool(os.getenv("SPOTIFY_CLIENT_ID")),
     )
+
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", "5000"))

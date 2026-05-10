@@ -49,6 +49,19 @@
             <input type="hidden" id="ym-token-hidden" name="ym_token" value="">
         </form>
 
+        <!-- Spotify Connect -->
+        {% if spotify_enabled %}
+        <div class="mt-3">
+            {% if spotify_connected %}
+            <span class="text-success small mr-2">&#10003; Spotify connected</span>
+            <a href="/spotify/disconnect" class="btn btn-sm btn-outline-danger">Disconnect</a>
+            {% else %}
+            <a href="/spotify/login" class="btn btn-sm btn-outline-success">Connect Spotify</a>
+            <span class="text-muted small ml-2">Required for Spotify playlists</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <!-- YM Token Settings -->
         <details id="ym-settings" class="mt-3" style="color: #ccc;">
             <summary style="cursor: pointer; user-select: none;">Yandex Music Token (for private playlists)</summary>
