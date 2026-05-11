@@ -132,8 +132,11 @@ def spotify_callback():
 def spotify_disconnect():
     global _spotify_token_cache
     _spotify_token_cache = {}
-    if os.path.exists(_SPOTIFY_TOKEN_FILE):
-        os.remove(_SPOTIFY_TOKEN_FILE)
+    try:
+        with open(_SPOTIFY_TOKEN_FILE, "w") as f:
+            f.write("{}")
+    except Exception:
+        pass
     return redirect(url_for("index"))
 
 
