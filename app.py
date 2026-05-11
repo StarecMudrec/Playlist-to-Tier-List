@@ -144,7 +144,7 @@ def _spotify_fetch_with_token(token: str, resource_type: str, resource_id: str):
     items = []
 
     if resource_type == "playlist":
-        url = f"https://api.spotify.com/v1/playlists/{resource_id}/tracks"
+        url = f"https://api.spotify.com/v1/playlists/{resource_id}/items"
         params = {"limit": 100, "fields": "items(track(id,name,artists,album(images))),next"}
     else:
         url = f"https://api.spotify.com/v1/albums/{resource_id}/tracks"
@@ -186,12 +186,9 @@ def _spotify_items_from_url(url: str):
 
     # 1. Try OAuth user token (most reliable)
     token = _get_spotify_oauth_token()
-    logging.warning(f"DEBUG OAuth token obtained: {bool(token)}")
     if token:
         try:
-            result = _spotify_fetch_with_token(token, resource_type, resource_id)
-            logging.warning(f"DEBUG OAuth fetch result: {len(result) if result else None} tracks")
-            return result
+            return _spotify_fetch_with_token(token, resource_type, resource_id)
         except Exception as e:
             logging.warning(f"Spotify OAuth fetch failed: {e}")
 
