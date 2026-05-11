@@ -91,7 +91,7 @@ def spotify_login():
         "client_id": client_id,
         "response_type": "code",
         "redirect_uri": redirect_uri,
-        "scope": "playlist-read-private playlist-read-collaborative",
+        "scope": "playlist-read-private playlist-read-collaborative user-read-private",
     })
     return redirect(f"https://accounts.spotify.com/authorize?{params}")
 
@@ -148,10 +148,10 @@ def _spotify_fetch_with_token(token: str, resource_type: str, resource_id: str):
 
     if resource_type == "playlist":
         url = f"https://api.spotify.com/v1/playlists/{resource_id}/items"
-        params = {"limit": 50}
+        params = {"limit": 50, "market": "from_token"}
     else:
         url = f"https://api.spotify.com/v1/albums/{resource_id}/tracks"
-        params = {"limit": 50}
+        params = {"limit": 50, "market": "from_token"}
 
     while url:
         r = requests.get(url, headers=headers, params=params, timeout=10)
