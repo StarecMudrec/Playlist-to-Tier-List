@@ -145,7 +145,7 @@ def _spotify_fetch_with_token(token: str, resource_type: str, resource_id: str):
 
     if resource_type == "playlist":
         url = f"https://api.spotify.com/v1/playlists/{resource_id}/items"
-        params = {"limit": 100, "fields": "items(track(id,name,artists,album(images))),next"}
+        params = {"limit": 50}
     else:
         url = f"https://api.spotify.com/v1/albums/{resource_id}/tracks"
         params = {"limit": 50}
