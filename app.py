@@ -186,9 +186,12 @@ def _spotify_items_from_url(url: str):
 
     # 1. Try OAuth user token (most reliable)
     token = _get_spotify_oauth_token()
+    logging.info(f"Spotify OAuth token obtained: {bool(token)}")
     if token:
         try:
-            return _spotify_fetch_with_token(token, resource_type, resource_id)
+            result = _spotify_fetch_with_token(token, resource_type, resource_id)
+            logging.info(f"Spotify OAuth fetch result: {len(result) if result else None} tracks")
+            return result
         except Exception as e:
             logging.warning(f"Spotify OAuth fetch failed: {e}")
 
