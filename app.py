@@ -328,9 +328,12 @@ def _yt_dlp_items_from_url(user_input: str):
 def get_playlist_info(playlist_url, ym_token_override: str = None):
     try:
         raw = (playlist_url or "").strip()
+        logging.warning(f"DEBUG get_playlist_info: url={raw!r} is_spotify={_is_spotify_url(raw)}")
 
         if _is_spotify_url(raw):
-            return _spotify_items_from_url(raw)
+            result = _spotify_items_from_url(raw)
+            logging.warning(f"DEBUG spotify result: {len(result) if result else None}")
+            return result
 
         user_id, playlist_id = extract_yandex_playlist_info(raw)
         if user_id and playlist_id:
